@@ -1,0 +1,1 @@
+Edit etc/cmds.tab with "label\tcmd" format, then type 'make'

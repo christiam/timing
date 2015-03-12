@@ -1,0 +1,3 @@
+date1	date
+blastp	blastp -query ~/queries/aa.129295 -task blastp-fast -db ecoli -out /dev/null
+blastn	blastn -query ~/queries/nt.555 -db ecoli -out /dev/null -num_threads 4
