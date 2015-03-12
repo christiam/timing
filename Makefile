@@ -2,7 +2,7 @@
 DBNAME=data/timings.db
 
 all: ${DBNAME}
-	bin/driver.pl -l log/driver.log
+	bin/driver.pl -r 3 -l log/driver.log
 
 ${DBNAME}:
 	sqlite3 ${DBNAME} < ddl/create.sql
@@ -10,8 +10,8 @@ ${DBNAME}:
 clean:
 	-rm -f ${DBNAME} log/*
 
-dump:
+dump: ${DBNAME}
 	sqlite3 -header -column ${DBNAME} < ddl/select.sql
 
-reset:
+reset: ${DBNAME}
 	sqlite3 ${DBNAME} < ddl/delete.sql

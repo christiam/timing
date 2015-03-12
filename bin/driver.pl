@@ -9,12 +9,14 @@ use autodie;
 
 my $dbname = "data/timings.db";
 my $cmds = "etc/cmds.tab";
+my $num_repeats = 1;
 my $dry_run = 0;
 my $verbose = 0;
 (my $logfile = $0) =~ s/.pl/.log/;
 my $help_requested = 0;
 GetOptions("db=s"           => \$dbname,
            "cmds=s"         => \$cmds,
+           "repeats=i"      => \$num_repeats,
            "verbose|v+"     => \$verbose,
            "dry_run"        => \$dry_run,
            "logfile=s"      => \$logfile,
@@ -22,6 +24,7 @@ GetOptions("db=s"           => \$dbname,
 pod2usage(-verbose=>2) if ($help_requested);
 pod2usage("Missing command file") unless (-s $cmds);
 pod2usage("Missing database") unless (-s $dbname);
+pod2usage("Invalid number of repeats") unless ($num_repeats > 0);
 $verbose = 1 if ($dry_run and $verbose == 0);
 
 try {
@@ -36,24 +39,32 @@ sub main
     $ENV{TIME} = "%e\t%U\t%S\t%P";
     open my $fh, "<", $cmds;
     while (<$fh>) {
+        next if (/^#/);
         chomp;
         my @F = split(/\t/);
         die "Invalid input: tab separated label and command expected" if (@F != 2);
         my $label = $F[0];
-        my $cmd = $F[1];
-        $cmd = "/usr/bin/time -o $label.time.out $F[1]";
-        run($cmd);
-        open my $time_output, "<", "$label.time.out";
-        while (<$time_output>) {
-            chomp;
-            s/%//g;
-            my @data = split(/\t/);
-            $cmd = "sqlite3 $dbname 'INSERT INTO runtime VALUES(\"$label\",";
-            $cmd .= sprintf("\"%f\",\"%f\",\"%f\",\"%d\");'", @data);
+        my $cmd2time = $F[1];
+        for (my $run_number = 0; $run_number < $num_repeats; $run_number++) {
+            my $label4run = $label . "-" . ($run_number+1);
+            if ($num_repeats == 1) {
+                $label4run = $label;
+            }
+            my $time_output_file = "$label4run.time.out";
+            my $cmd = "/usr/bin/time -o $time_output_file $cmd2time";
             run($cmd);
-            unlink "$label.time.out";
+            open my $time_output, "<", $time_output_file;
+            while (<$time_output>) {
+                chomp;
+                s/%//g;
+                my @data = split(/\t/);
+                $cmd = "sqlite3 $dbname 'INSERT INTO runtime VALUES(\"$label4run\",";
+                $cmd .= sprintf("\"%f\",\"%f\",\"%f\",\"%d\");'", @data);
+                run($cmd);
+            }
+            close($time_output);
+            unlink $time_output_file;
         }
-        close($time_output);
     }
     close($fh);
 }
