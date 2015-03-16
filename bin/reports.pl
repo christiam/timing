@@ -45,11 +45,11 @@ sub main
     foreach (@labels) {
         my $sql = "select ellapsed_time from runtime where label like '$_-%'";
         TRACE($sql);
-        my @rv = $dbh->selectrow_array($sql);
-        DEBUG(join(" ", $_, @rv));
+        my @result = map { $_ = $_->[0] } @{ $dbh->selectall_arrayref($sql) };
+        DEBUG(join(" ", $_, @result));
 
         my $stat = Statistics::Descriptive::Full->new();
-        $stat->add_data(@rv);
+        $stat->add_data(@result);
         $data{$_} = $stat;
     }
 
