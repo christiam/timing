@@ -2,7 +2,7 @@
 DBNAME=data/timings.db
 
 all: ${DBNAME}
-	bin/driver.pl -r 3 -l log/driver.log
+	bin/driver.pl -v -v -v -r 3 -l log/driver.log
 
 ${DBNAME}:
 	sqlite3 ${DBNAME} < ddl/create.sql

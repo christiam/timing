@@ -3,6 +3,8 @@ use strict;
 use warnings;
 use Log::Log4perl qw(:easy);
 use Getopt::Long;
+use File::Slurp;
+use File::Temp;
 use Pod::Usage;
 use Try::Tiny;
 use autodie;
@@ -25,10 +27,10 @@ pod2usage(-verbose=>2) if ($help_requested);
 pod2usage("Missing command file") unless (-s $cmds);
 pod2usage("Missing database") unless (-s $dbname);
 pod2usage("Invalid number of repeats") unless ($num_repeats > 0);
-$verbose = 1 if ($dry_run and $verbose == 0);
+$verbose = 5 if ($dry_run and $verbose == 0);
+Log::Log4perl->easy_init({level=>verbosity2threshold($verbose),$file=>">>$logfile"});
 
 try {
-    init_logging($logfile, $verbose);
     main();
 } catch {
     LOGDIE("Caught exception: $_");
@@ -37,8 +39,7 @@ try {
 sub main
 {
     $ENV{TIME} = "%e\t%U\t%S\t%P";
-    open my $fh, "<", $cmds;
-    while (<$fh>) {
+    foreach (read_file($cmds)) {
         next if (/^#/);
         chomp;
         my @F = split(/\t/);
@@ -50,45 +51,32 @@ sub main
             if ($num_repeats == 1) {
                 $label4run = $label;
             }
-            my $time_output_file = "$label4run.time.out";
-            my $cmd = "/usr/bin/time -o $time_output_file $cmd2time";
+            my $tmp_fh = File::Temp->new();
+            my $cmd = "/usr/bin/time -o $tmp_fh $cmd2time";
             run($cmd);
-            open my $time_output, "<", $time_output_file;
-            while (<$time_output>) {
-                chomp;
-                s/%//g;
-                my @data = split(/\t/);
-                $cmd = "sqlite3 $dbname 'INSERT INTO runtime VALUES(\"$label4run\",";
-                $cmd .= sprintf("\"%f\",\"%f\",\"%f\",\"%d\");'", @data);
-                run($cmd);
-            }
-            close($time_output);
-            unlink $time_output_file;
+            chomp(my $time_output = read_file($tmp_fh->filename));
+            $time_output =~ s/%//g;
+            $cmd = "sqlite3 $dbname 'INSERT INTO runtime VALUES(\"$label4run\",";
+            $cmd .= sprintf("\"%f\",\"%f\",\"%f\",\"%d\");'", split(/\t/));
+            run($cmd);
         }
     }
-    close($fh);
 }
 
-# Initialize logging function so that it uses increasing log levels
-sub init_logging 
+sub verbosity2threshold
 {
-    my ($logfile, $verbose) = @_;
-    my $level = $WARN;
-    my $layout = '%d %m%n';
+    my $verbose = shift;
+    my $retval = $OFF;
     if ($verbose == 1) {
-        $level = $INFO;
+        $retval = $WARN;
     } elsif ($verbose == 2) {
-        $level = $DEBUG;
-        $layout = '%d [%8P] %6p %m%n';
-    } elsif ($verbose >= 3) {
-        $level = $TRACE;
-        $layout = '%d [%8P] %6p %F:%L %m%n';
+        $retval = $INFO;
+    } elsif ($verbose == 3) {
+        $retval = $DEBUG; 
+    } elsif ($verbose >= 4) {
+        $retval = $TRACE;
     }
-    Log::Log4perl->easy_init({ 
-        level => $level, 
-        file => ">>$logfile",
-        layout => $layout
-    });
+    return $retval;
 }
 
 # Wrapper function to system that logs commands and throws an exception
@@ -118,17 +106,31 @@ __END__
 
 =head1 NAME
 
-B<bin/driver.pl> - What this script does
+B<driver.pl> - Main driver script to run the timing experiments and record the
+results in database
 
 =head1 SYNOPSIS
 
-bin/driver.pl [options]
+driver.pl [options]
 
 =head1 ARGUMENTS
 
 =over
 
-=item B<-verbose>, B<-v>
+=item B<-db>
+
+Database file name (default: data/timings.db)
+
+=item B<-cmds>
+
+Tab delimited file containing captions and commands to run (default:
+etc/cmds.tab)
+
+=item B<-repeats>
+
+Number of times to run each command (default: 1)
+
+=item B<-verbose>
 
 Produce verbose output (default: false)
 
@@ -140,7 +142,7 @@ Do not run any commands, implies -verbose (default: false)
 
 File name to write log to (default: driver.log)
 
-=item B<-help>, B<-h>, B<-?>
+=item B<-help>, B<-?>
 
 Displays this man page.
 
