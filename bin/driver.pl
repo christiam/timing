@@ -14,7 +14,7 @@ my $cmds = "etc/cmds.tab";
 my $num_repeats = 1;
 my $dry_run = 0;
 my $verbose = 0;
-(my $logfile = $0) =~ s/.pl/.log/;
+my $logfile = "";
 my $help_requested = 0;
 GetOptions("db=s"           => \$dbname,
            "cmds=s"         => \$cmds,
@@ -28,9 +28,9 @@ pod2usage("Missing command file") unless (-s $cmds);
 pod2usage("Missing database") unless (-s $dbname);
 pod2usage("Invalid number of repeats") unless ($num_repeats > 0);
 $verbose = 5 if ($dry_run and $verbose == 0);
-Log::Log4perl->easy_init({level=>verbosity2threshold($verbose),$file=>">>$logfile"});
 
 try {
+    init_logging($logfile, $verbose);
     main();
 } catch {
     LOGDIE("Caught exception: $_");
@@ -38,12 +38,13 @@ try {
 
 sub main
 {
+    $|++;
     $ENV{TIME} = "%e\t%U\t%S\t%P";
     foreach (read_file($cmds)) {
         next if (/^#/);
         chomp;
         my @F = split(/\t/);
-        die "Invalid input: tab separated label and command expected" if (@F != 2);
+        LOGDIE("Invalid input: tab separated label and command expected") if (@F != 2);
         my $label = $F[0];
         my $cmd2time = $F[1];
         for (my $run_number = 0; $run_number < $num_repeats; $run_number++) {
@@ -54,15 +55,28 @@ sub main
             my $tmp_fh = File::Temp->new();
             my $cmd = "/usr/bin/time -o $tmp_fh $cmd2time";
             run($cmd);
-            chomp(my $time_output = read_file($tmp_fh->filename));
-            $time_output =~ s/%//g;
+            chomp(my $timings = read_file($tmp_fh->filename));
+            DEBUG("Read '$timings'");
+            LOGDIE("No timings read") unless (length $timings);
+            $timings =~ s/%//g;
             $cmd = "sqlite3 $dbname 'INSERT INTO runtime VALUES(\"$label4run\",";
-            $cmd .= sprintf("\"%f\",\"%f\",\"%f\",\"%d\");'", split(/\t/));
+            $cmd .= sprintf("\"%f\",\"%f\",\"%f\",\"%d\");'", split(/\t/, $timings));
             run($cmd);
         }
     }
 }
 
+# Initializes the logging for this script, defaulting to STDERR or the
+# optionally provided logfile
+sub init_logging
+{
+    my ($logfile, $verbose) = @_;
+    my $opts = {level=>verbosity2threshold($verbose)};
+    $opts->{file} = ">>$logfile" if (length $logfile);
+    Log::Log4perl->easy_init($opts);
+}
+
+# Converts the verbosity flag to Log4perl logging levels
 sub verbosity2threshold
 {
     my $verbose = shift;
