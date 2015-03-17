@@ -11,17 +11,15 @@ use Statistics::Descriptive;
 use autodie;
 
 my $dbname = "data/timings.db";
-my ($min, $max, $avg);
 my @labels;
+my $showall = 0;
 my $dry_run = 0;
 my $verbose = 0;
 my $logfile = "";
 my $help_requested = 0;
 GetOptions("db=s"           => \$dbname,
-           "avg"            => \$avg,
-           "min"            => \$min,
-           "max"            => \$max,
            "label=s"        => \@labels,
+           "showall"        => \$showall,
            "verbose|v+"     => \$verbose,
            "dry_run"        => \$dry_run,
            "logfile=s"      => \$logfile,
@@ -56,14 +54,16 @@ sub main
 
     $\ = "\n", $, = " ";
     foreach (@labels) {
-        print $_, 
-            "median", $data{$_}->median(), 
-            "mean", $data{$_}->mean(), 
-            "min", $data{$_}->min(), 
-            "max", $data{$_}->max(), 
+        if ($showall) {
+            print $_, $data{$_}->get_data();
+        } else {
+            print $_, 
+                "median", $data{$_}->median(), 
+                "mean", $data{$_}->mean(), 
+                "min", $data{$_}->min(), 
+                "max", $data{$_}->max(); 
+        }
     }
-
-    #print Dumper(%data);
 }
 
 # Connects to an SQLite database provided as its first argument
@@ -108,32 +108,6 @@ sub verbosity2threshold
     return $retval;
 }
 
-### # Initialize logging function so that it uses increasing log levels
-### sub init_logging 
-### {
-###     my ($logfile, $verbose) = @_;
-###     my $level = $WARN;
-###     my $layout = '%d %m%n';
-###     if ($verbose == 1) {
-###         $level = $INFO;
-###     } elsif ($verbose == 2) {
-###         $level = $DEBUG;
-###         $layout = '%d [%8P] %6p %m%n';
-###     } elsif ($verbose >= 3) {
-###         $level = $TRACE;
-###         $layout = '%d [%8P] %6p %F:%L %m%n';
-###     }
-###     Log::Log4perl->easy_init({ 
-###         level => $level, 
-###         #file => ">>$logfile",
-###         layout => $layout
-###     });
-### }
-### =item B<-logfile>
-### 
-### File name to write log to (default: reports.log)
-### 
-
 # Wrapper function to system that logs commands and throws an exception
 # in case of failure
 sub run
@@ -144,39 +118,23 @@ sub run
     system($cmd) unless $dry_run;
 }
 
-sub chdir_and_log
-{
-    my $dir = shift;
-    chdir $dir;
-    TRACE("CWD=$dir");
-}
-
-### # Wrapper function to system that logs commands
-### sub run
-### {
-###     use IPC::System::Simple qw(EXIT_ANY runx);
-###     my $cmd = shift;
-###     TRACE($cmd);
-###     my @args = split(/ /, $cmd);
-###     my $program = shift @args;
-###     my $retval = $dry_run ? 0 : runx(EXIT_ANY, $program, @args);
-###     TRACE("Exit code = $retval");
-###     return $retval;
-### }
-### 
 __END__
 
 =head1 NAME
 
-B<bin/reports.pl> - What this script does
+B<reports.pl> - Produce reports from timing database
 
 =head1 SYNOPSIS
 
-bin/reports.pl [options]
+reports.pl [options] -label <test-case> [-label <test-case> ... ]
 
 =head1 ARGUMENTS
 
 =over
+
+=item B<-db>
+
+Database file name (default: data/timings.db)
 
 =item B<-verbose>
 
