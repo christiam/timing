@@ -19,6 +19,7 @@ show: ${DBNAME}
 reset: ${DBNAME}
 	sqlite3 ${DBNAME} < ddl/delete.sql
 
+# Plots histograms of repeated tests
 GRAPHS=\
 blastx-185kb-query.png \
 blastx-209kb-query.png \
@@ -29,6 +30,12 @@ megablast-214kb-query.png
 GNUPLOT_DATA=data/timings.dat
 GNUPLOT_CONF=etc/timings.gnuplot.conf
 
+# Plots simple runtimes
+GRAPH_SIMPLE=simple.png
+GNUPLOT_DATA_SIMPLE=data/timings-simple.dat
+GNUPLOT_CONF_SIMPLE=etc/simple.gnuplot.conf
+
+simple: ${GRAPH_SIMPLE}
 graphs: ${GRAPHS}
 
 ${GRAPHS}: ${GNUPLOT_DATA} ${GNUPLOT_CONF}
@@ -38,14 +45,19 @@ ${GRAPHS}: ${GNUPLOT_DATA} ${GNUPLOT_CONF}
 	gnuplot -e "idx=3; title='blastx runtime: 215kb query vs. nr'; output='blastx-215kb-query.png'; data_file='${GNUPLOT_DATA}'" ${GNUPLOT_CONF}
 	gnuplot -e "idx=4; title='blastx runtime: 209kb query vs. nr'; output='blastx-209kb-query.png'; data_file='${GNUPLOT_DATA}'" ${GNUPLOT_CONF}
 	gnuplot -e "idx=5; title='blastx runtime: 185kb query vs. nr'; output='blastx-185kb-query.png'; data_file='${GNUPLOT_DATA}'" ${GNUPLOT_CONF}
-	if [ -s $@ ] ; then cp -v $@ ~/ ; else rm -f $@; fi
 
 ${GNUPLOT_DATA}: ${DBNAME}
-	sqlite3 ${DBNAME} < ddl/select.sql | bin/data2gnuplot.pl > ${GNUPLOT_DATA}
+	sqlite3 ${DBNAME} < ddl/select.sql | bin/data2gnuplot.pl > $@
+
+${GNUPLOT_DATA_SIMPLE}: ${DBNAME}
+	bin/reports.pl -label all | sort -n | awk '{print $$1, $$3, $$5, $$7, $$9}' > $@
+
+${GRAPH_SIMPLE}: ${GNUPLOT_DATA_SIMPLE} ${GNUPLOT_CONF_SIMPLE}
+	gnuplot -e "output='${GRAPH_SIMPLE}'; data_file='${GNUPLOT_DATA_SIMPLE}'" ${GNUPLOT_CONF_SIMPLE}
 
 clean:
-	-rm -f ${GNUPLOT_DATA} ${GRAPHS}
+	-rm -f ${GNUPLOT_DATA} ${GRAPHS} ${GRAPH_SIMPLE} ${GNUPLOT_DATA} ${GNUPLOT_DATA_SIMPLE}
 
-purge:
+purge: clean
 	-rm -f ${DBNAME} log/*
 
