@@ -14,6 +14,7 @@ dump: ${DBNAME}
 
 show: ${DBNAME}
 	sqlite3 -header -column ${DBNAME} < ddl/select.sql
+	bin/reports.pl -label all
 
 reset: ${DBNAME}
 	sqlite3 ${DBNAME} < ddl/delete.sql
