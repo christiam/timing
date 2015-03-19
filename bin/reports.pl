@@ -12,14 +12,14 @@ use autodie;
 
 my $dbname = "data/timings.db";
 my @labels;
-my $showall = 0;
+my $dump = 0;
 my $dry_run = 0;
 my $verbose = 0;
 my $logfile = "";
 my $help_requested = 0;
 GetOptions("db=s"           => \$dbname,
            "label=s"        => \@labels,
-           "showall"        => \$showall,
+           "dump"           => \$dump,
            "verbose|v+"     => \$verbose,
            "dry_run"        => \$dry_run,
            "logfile=s"      => \$logfile,
@@ -40,6 +40,9 @@ sub main
 {
     my $dbh = connect_to_sqlite($dbname);
     my %data;
+    if (@labels == 1 and $labels[0] eq 'all') {
+        @labels = get_all_labels($dbh);
+    }
     foreach (@labels) {
         my $sql = "select ellapsed_time from runtime where label like '$_-%'";
         TRACE($sql);
@@ -52,9 +55,9 @@ sub main
     }
 
 
-    $\ = "\n", $, = " ";
+    $\ = "\n", $, = "\t";
     foreach (@labels) {
-        if ($showall) {
+        if ($dump) {
             print $_, $data{$_}->get_data();
         } else {
             print $_, 
@@ -64,6 +67,16 @@ sub main
                 "max", $data{$_}->max(); 
         }
     }
+}
+
+sub get_all_labels
+{
+    use List::MoreUtils qw(uniq);
+    my $dbh = shift;
+    my $sql = "select distinct(label) from runtime";
+    my @array = map { $_ = $_->[0] } @{ $dbh->selectall_arrayref($sql) };
+    s/-\d+$// foreach @array;   # drop the repeat number, if any
+    return uniq @array;
 }
 
 # Connects to an SQLite database provided as its first argument
@@ -122,7 +135,7 @@ __END__
 
 =head1 NAME
 
-B<reports.pl> - Produce reports from timing database
+B<reports.pl> - Produce reports from timing database (for ellapsed_time)
 
 =head1 SYNOPSIS
 
@@ -131,6 +144,14 @@ reports.pl [options] -label <test-case> [-label <test-case> ... ]
 =head1 ARGUMENTS
 
 =over
+
+=item B<-label>
+
+Label from the database to display report for. Can be the keyword 'all', which
+shows summary information for all labels in database.
+
+=item B<-dump>
+Shows the raw data for the requested label(s).
 
 =item B<-db>
 
