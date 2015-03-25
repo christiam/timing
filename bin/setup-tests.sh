@@ -13,7 +13,7 @@ rm $CMDS_FILE
 #for n in 2 4 8 12 ; do
 for n in 2 4 8 16 32 64 128 ; do
 	echo -e "$n\tspark-submit --name \"JavaSparkPi on $n cores\" --master mesos://zk://mesos11:2181,mesos12:2181,mesos13:2181,/mesos --conf spark.executor.uri=hdfs://mesosdev/dist/spark-1.2.0-bin-2.5.0-cdh5.3.0.tgz --total-executor-cores $n --executor-memory 4G --driver-memory 2G --conf spark.executorEnv.NCBI=/etc --class ${CLASS} ${JARFILE} $SLICES" >> ${CMDS_FILE}
-	#echo -e "$n\tspark-submit --name \"JavaSparkPi on $n cores\" --master yarn-client --total-executor-cores $n --class ${CLASS} ${JARFILE} $SLICES" >> ${CMDS_FILE} 
+	#echo -e "$n\tspark-submit --name \"JavaSparkPi on $n cores\" --master yarn-client --num-executors $n --class ${CLASS} ${JARFILE} $SLICES" >> ${CMDS_FILE} 
 	#echo -e "$n\tspark-submit --name \"JavaSparkPi on $n cores\" --master local[$n] --class ${CLASS} ${JARFILE} $SLICES" >> ${CMDS_FILE}
 done
 echo "run make run simple show NUM_REPEATS=5 GRAPH_SIMPLE=filename.png TITLE_SIMPLE=title"
