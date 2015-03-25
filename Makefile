@@ -1,9 +1,10 @@
 .PHONY: run clean reset dump graphs reset show purge
 DATADIR=data
 DBNAME=${DATADIR}/timings.db
+NUM_REPEATS=3
 
 run: ${DBNAME}
-	bin/driver.pl -v -v -v -v -r 3
+	bin/driver.pl -v -v -v -v -r ${NUM_REPEATS}
 
 ${DBNAME}:
 	[ -d ${DATADIR} ] || mkdir ${DATADIR}
@@ -31,7 +32,8 @@ GNUPLOT_DATA=data/timings.dat
 GNUPLOT_CONF=etc/timings.gnuplot.conf
 
 # Plots simple runtimes
-GRAPH_SIMPLE=simple.png
+GRAPH_SIMPLE=estimatePiMesos.png
+TITLE_SIMPLE=Replace me
 GNUPLOT_DATA_SIMPLE=data/timings-simple.dat
 GNUPLOT_CONF_SIMPLE=etc/simple.gnuplot.conf
 
@@ -53,7 +55,7 @@ ${GNUPLOT_DATA_SIMPLE}: ${DBNAME}
 	bin/reports.pl -label all | sort -n | awk '{print $$1, $$3, $$5, $$7, $$9}' > $@
 
 ${GRAPH_SIMPLE}: ${GNUPLOT_DATA_SIMPLE} ${GNUPLOT_CONF_SIMPLE}
-	gnuplot -e "output='${GRAPH_SIMPLE}'; data_file='${GNUPLOT_DATA_SIMPLE}'" ${GNUPLOT_CONF_SIMPLE}
+	gnuplot -e "output='${GRAPH_SIMPLE}'; title='$(TITLE_SIMPLE)'; data_file='${GNUPLOT_DATA_SIMPLE}'" ${GNUPLOT_CONF_SIMPLE}
 
 clean:
 	-rm -f ${GNUPLOT_DATA} ${GRAPHS} ${GRAPH_SIMPLE} ${GNUPLOT_DATA} ${GNUPLOT_DATA_SIMPLE}
