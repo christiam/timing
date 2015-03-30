@@ -7,17 +7,20 @@ INPUT_FILE=/net/snowman/vol/export2/camacho/work/aws/timing/data/quick_blastn.tx
 NUM_REPEATS=5
 OUTPUT_BASE_NAME=simple-search
 OUTPUT_BASE_NAME=simple-search-on-mesos
-OUTPUT_BASE_NAME=simple-search-on-yarn
+OUTPUT_BASE_NAME=megablast-mesos-25000
 NUM_CORES_MINUS_1ST="4 8 12"
 NUM_CORES_MINUS_1ST="4 8 16 32 64 128"
 NUM_CORES="2 ${NUM_CORES_MINUS_1ST}"
+
+REFERENCE_OUTPUT="ref.tab"
+TEST_OUTPUT="test.tab"
 
 # Only needed for Yarn
 #. ~/hadoop/setenv.sh
 
 set -xe
-if [ ! -f ref.out ] ; then
-    sh -x $INPUT_FILE > ref.out
+if [ ! -f $REFERENCE_OUTPUT ] ; then
+    sh -x $INPUT_FILE > $REFERENCE_OUTPUT
 fi
 for n in ${NUM_CORES}; do
     # Download hadoop output and remove it from HDFS
@@ -36,16 +39,17 @@ for n in ${NUM_CORES}; do
     done
 done
 
+mv 2-1.out $TEST_OUTPUT
 for n in ${NUM_CORES_MINUS_1ST}; do
-    cmp 2-1.out $n-1.out
+    cmp $TEST_OUTPUT $n-1.out
     if [ $? == 0 ] ; then
         rm $n-1.out
     fi
 done
 
-grep -v '^#' ref.out | sort > ref-no-comment-sort.out
-grep -v '^#' 2-1.out | sort > 2-1-no-comment-sort.out
-cmp ref-no-comment-sort.out 2-1-no-comment-sort.out
+grep -v '^#' $REFERENCE_OUTPUT | sort > ref-no-comment-sort.out
+grep -v '^#' $TEST_OUTPUT | sort > test-no-comment-sort.out
+cmp ref-no-comment-sort.out test-no-comment-sort.out
 if [ $? == 0 ] ; then
-    rm ref-no-comment-sort.out 2-1-no-comment-sort.out 2-1.out ref.out
+    rm ref-no-comment-sort.out test-no-comment-sort.out $TEST_OUTPUT $REFERENCE_OUTPUT
 fi
