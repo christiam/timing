@@ -68,7 +68,8 @@ sub main
                 "median", $data{$_}->median(), 
                 "mean", $data{$_}->mean(), 
                 "min", $data{$_}->min(), 
-                "max", $data{$_}->max(); 
+                "max", $data{$_}->max(),
+                "stddev", $data{$_}->standard_deviation();
         }
     }
 }
