@@ -5,6 +5,25 @@ NUM_REPEATS=1
 BASIC_GNUPLOT_CONF=etc/basic.gnuplot.conf
 VPATH = $(DATADIR)
 
+# Plots histograms of repeated tests
+### GRAPHS=\
+### blastx-185kb-query.png \
+### blastx-209kb-query.png \
+### blastx-214kb-query.png \
+### megablast-185kb-query.png \
+### megablast-209kb-query.png \
+### megablast-214kb-query.png 
+GRAPHS=wgs-vs-nt.png
+GNUPLOT_DATA=data/wgs-vs-nt.dat
+#GNUPLOT_CONF=etc/timings.gnuplot.conf
+GNUPLOT_CONF=etc/multi-series.gnuplot.conf
+#
+## Plots simple runtimes
+#GRAPH_SIMPLE=estimatePiMesos.png
+#TITLE_SIMPLE=Replace me
+#GNUPLOT_DATA_SIMPLE=data/timings-simple.dat
+#GNUPLOT_CONF_SIMPLE=etc/simple.gnuplot.conf
+
 .PHONY: all
 all: ${DBNAME}
 	bin/driver.pl -v -v -v -v -r ${NUM_REPEATS}
@@ -47,27 +66,15 @@ reset: ${DBNAME}
 setup:
 	[ -d ${DATADIR} ] || mkdir ${DATADIR}
 
+.PHONY: check
+check:
+	for f in bin/*.pl; do perl -c $$f ; done
+
 .PHONY: simple
 simple: ${GRAPH_SIMPLE}
 .PHONY: graphs
 graphs: ${GRAPHS}
 
-# Plots histograms of repeated tests
-### GRAPHS=\
-### blastx-185kb-query.png \
-### blastx-209kb-query.png \
-### blastx-214kb-query.png \
-### megablast-185kb-query.png \
-### megablast-209kb-query.png \
-### megablast-214kb-query.png 
-#GNUPLOT_DATA=data/timings.dat
-#GNUPLOT_CONF=etc/timings.gnuplot.conf
-#
-## Plots simple runtimes
-#GRAPH_SIMPLE=estimatePiMesos.png
-#TITLE_SIMPLE=Replace me
-#GNUPLOT_DATA_SIMPLE=data/timings-simple.dat
-#GNUPLOT_CONF_SIMPLE=etc/simple.gnuplot.conf
 #
 #${GRAPHS}: ${GNUPLOT_DATA} ${GNUPLOT_CONF}
 #	gnuplot -e "idx=0; title='megablast runtime: 215kb query vs. nt'; output='megablast-215kb-query.png'; data_file='${GNUPLOT_DATA}'" ${GNUPLOT_CONF}
@@ -76,19 +83,22 @@ graphs: ${GRAPHS}
 #	gnuplot -e "idx=3; title='blastx runtime: 215kb query vs. nr'; output='blastx-215kb-query.png'; data_file='${GNUPLOT_DATA}'" ${GNUPLOT_CONF}
 #	gnuplot -e "idx=4; title='blastx runtime: 209kb query vs. nr'; output='blastx-209kb-query.png'; data_file='${GNUPLOT_DATA}'" ${GNUPLOT_CONF}
 #	gnuplot -e "idx=5; title='blastx runtime: 185kb query vs. nr'; output='blastx-185kb-query.png'; data_file='${GNUPLOT_DATA}'" ${GNUPLOT_CONF}
+$(GRAPHS): $(GNUPLOT_DATA) $(GNUPLOT_CONF)
+	gnuplot -e "title='WGS queries vs nt on spark mesos'; output='$@'; data_file='$<'" $(GNUPLOT_CONF)
 
 ${GNUPLOT_DATA}: ${DBNAME}
-	sqlite3 ${DBNAME} < ddl/select.sql | bin/data2gnuplot.pl > $@
+	#sqlite3 $< < ddl/select.sql | bin/data2gnuplot.pl > $@
+	sqlite3 $< < ddl/select.sql | bin/multi-series-extractor.pl > $@
 
 ${GNUPLOT_DATA_SIMPLE}: ${DBNAME}
 	bin/reports.pl -label all | sort -n | awk '{print $$1, $$3, $$5, $$7, $$9}' > $@
 
 ${GRAPH_SIMPLE}: ${GNUPLOT_DATA_SIMPLE} ${GNUPLOT_CONF_SIMPLE}
-	gnuplot -e "output='${GRAPH_SIMPLE}'; title='$(TITLE_SIMPLE)'; data_file='${GNUPLOT_DATA_SIMPLE}'" ${GNUPLOT_CONF_SIMPLE}
+	gnuplot -e "output='$@'; title='$(TITLE_SIMPLE)'; data_file='$<'" ${GNUPLOT_CONF_SIMPLE}
 
 .PHONY: clean
 clean:
-	$(RM) ${GNUPLOT_DATA} ${GRAPHS} ${GRAPH_SIMPLE} ${GNUPLOT_DATA} ${GNUPLOT_DATA_SIMPLE} *.dat
+	$(RM) ${GNUPLOT_DATA} ${GRAPHS} ${GRAPH_SIMPLE} ${GNUPLOT_DATA_SIMPLE}
 
 .PHONY: purge
 purge: clean
