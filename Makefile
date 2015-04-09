@@ -1,24 +1,31 @@
-.PHONY: run clean reset dump graphs reset show purge
 DATADIR=data
 DBNAME=${DATADIR}/timings.db
 NUM_REPEATS=3
 
-run: ${DBNAME}
+.PHONY: all
+all: ${DBNAME}
 	bin/driver.pl -v -v -v -v -r ${NUM_REPEATS}
+$(DBNAME): setup
 
-${DBNAME}:
-	[ -d ${DATADIR} ] || mkdir ${DATADIR}
-	sqlite3 ${DBNAME} < ddl/create.sql
+%.db:
+	sqlite3 $@ < ddl/create.sql
 
+.PHONY: dump
 dump: ${DBNAME}
 	sqlite3 ${DBNAME} .dump
 
+.PHONY: show
 show: ${DBNAME}
 	sqlite3 -header -column ${DBNAME} < ddl/select.sql
 	bin/reports.pl -label all | sort -n
 
+.PHONY: reset
 reset: ${DBNAME}
 	sqlite3 ${DBNAME} < ddl/delete.sql
+
+.PHONY: setup
+setup:
+	[ -d ${DATADIR} ] || mkdir ${DATADIR}
 
 # Plots histograms of repeated tests
 GRAPHS=\
@@ -38,6 +45,7 @@ GNUPLOT_DATA_SIMPLE=data/timings-simple.dat
 GNUPLOT_CONF_SIMPLE=etc/simple.gnuplot.conf
 
 simple: ${GRAPH_SIMPLE}
+.PHONY: graphs
 graphs: ${GRAPHS}
 
 ${GRAPHS}: ${GNUPLOT_DATA} ${GNUPLOT_CONF}
@@ -57,9 +65,11 @@ ${GNUPLOT_DATA_SIMPLE}: ${DBNAME}
 ${GRAPH_SIMPLE}: ${GNUPLOT_DATA_SIMPLE} ${GNUPLOT_CONF_SIMPLE}
 	gnuplot -e "output='${GRAPH_SIMPLE}'; title='$(TITLE_SIMPLE)'; data_file='${GNUPLOT_DATA_SIMPLE}'" ${GNUPLOT_CONF_SIMPLE}
 
+.PHONY: clean
 clean:
 	-rm -f ${GNUPLOT_DATA} ${GRAPHS} ${GRAPH_SIMPLE} ${GNUPLOT_DATA} ${GNUPLOT_DATA_SIMPLE}
 
+.PHONY: purge
 purge: clean
 	-rm -f ${DBNAME} log/*
 
