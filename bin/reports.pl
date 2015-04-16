@@ -69,7 +69,8 @@ sub main
                 "mean", $data{$_}->mean(), 
                 "min", $data{$_}->min(), 
                 "max", $data{$_}->max(),
-                "stddev", $data{$_}->standard_deviation();
+                "stddev", $data{$_}->standard_deviation(),
+                "sum", $data{$_}->sum();
         }
     }
 }
