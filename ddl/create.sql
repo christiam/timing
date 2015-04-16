@@ -4,6 +4,7 @@ CREATE TABLE IF NOT EXISTS runtime (
     system_time     FLOAT CHECK(system_time >= 0.0),
     user_time       FLOAT CHECK(user_time >= 0.0),
     pcpu            INTEGER CHECK(pcpu >= 0),
+    exit_status     INTEGER DEFAULT 0,
     finished_at     TEXT DEFAULT ''
 );
 CREATE TRIGGER IF NOT EXISTS finished_at_trigger AFTER INSERT ON runtime

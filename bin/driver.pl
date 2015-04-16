@@ -79,8 +79,9 @@ sub main
             my @data = (0)x4;
             $timings =~ s/%//g;
             @data = split(/\t/, $timings) if (length $timings);
+            push @data, $IPC::System::Simple::EXITVAL;
             $cmd = "sqlite3 $dbname 'INSERT INTO runtime VALUES(\"$label4run\",";
-            $cmd .= sprintf("\"%f\",\"%f\",\"%f\",\"%d\", \"\");'", @data);
+            $cmd .= sprintf("\"%f\",\"%f\",\"%f\", %d, %d, \"\");'", @data);
             run($cmd);
         }
     }
