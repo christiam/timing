@@ -15,12 +15,14 @@ my $num_repeats = 1;
 my $dry_run = 0;
 my $verbose = 0;
 my $skip_failures = 0;
+my $rm_core_files = 0;
 my $logfile = "";
 my $help_requested = 0;
 GetOptions("db=s"           => \$dbname,
            "cmds=s"         => \$cmds,
            "repeats=i"      => \$num_repeats,
            "skip_failures"  => \$skip_failures,
+           "rm_core_files"  => \$rm_core_files,
            "verbose|v+"     => \$verbose,
            "dry_run"        => \$dry_run,
            "logfile=s"      => \$logfile,
@@ -83,6 +85,10 @@ sub main
             $cmd = "sqlite3 $dbname 'INSERT INTO runtime VALUES(\"$label4run\",";
             $cmd .= sprintf("\"%f\",\"%f\",\"%f\", %d, %d, \"\");'", @data);
             run($cmd);
+            if ($rm_core_files) {
+                no autodie; 
+                unlink glob("core.*");
+            }
         }
     }
 }
@@ -168,6 +174,10 @@ Number of times to run each command (default: 1)
 =item B<-skip_failures>
 
 Skip command on after any failure (default: false)
+
+=item B<-rm_core_files>
+
+Remove any core files created (default: false)
 
 =item B<-verbose>
 
