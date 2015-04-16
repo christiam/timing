@@ -5,6 +5,15 @@ NUM_REPEATS=1
 BASIC_GNUPLOT_CONF=etc/basic.gnuplot.conf
 VPATH = $(DATADIR)
 
+TIMING_NAME=blastx-555-vs-nr09
+GRAPHS=$(TIMING_NAME).png
+TITLE=blastx search of nr.09
+GNUPLOT_DATA=data/$(TIMING_NAME).dat
+#GNUPLOT_CONF=etc/basic.gnuplot.conf
+#GNUPLOT_CONF=etc/timings.gnuplot.conf
+GNUPLOT_CONF=etc/multi-series.gnuplot.conf
+#GNUPLOT_CONF_SIMPLE=etc/simple.gnuplot.conf
+
 # Plots histograms of repeated tests
 ### GRAPHS=\
 ### blastx-185kb-query.png \
@@ -13,20 +22,16 @@ VPATH = $(DATADIR)
 ### megablast-185kb-query.png \
 ### megablast-209kb-query.png \
 ### megablast-214kb-query.png 
-GRAPHS=wgs-vs-nt.png
-GNUPLOT_DATA=data/wgs-vs-nt.dat
-#GNUPLOT_CONF=etc/timings.gnuplot.conf
-GNUPLOT_CONF=etc/multi-series.gnuplot.conf
-#
+
 ## Plots simple runtimes
 #GRAPH_SIMPLE=estimatePiMesos.png
 #TITLE_SIMPLE=Replace me
 #GNUPLOT_DATA_SIMPLE=data/timings-simple.dat
-#GNUPLOT_CONF_SIMPLE=etc/simple.gnuplot.conf
 
 .PHONY: all
 all: ${DBNAME}
-	bin/driver.pl -v -v -v -v -r ${NUM_REPEATS}
+	bin/driver.pl -v -v -v -v -s
+	#bin/driver.pl -v -v -v -v -s -repeats $(NUM_REPEATS) -rm_core_files
 
 $(DBNAME): setup
 
@@ -84,7 +89,7 @@ graphs: ${GRAPHS}
 #	gnuplot -e "idx=4; title='blastx runtime: 209kb query vs. nr'; output='blastx-209kb-query.png'; data_file='${GNUPLOT_DATA}'" ${GNUPLOT_CONF}
 #	gnuplot -e "idx=5; title='blastx runtime: 185kb query vs. nr'; output='blastx-185kb-query.png'; data_file='${GNUPLOT_DATA}'" ${GNUPLOT_CONF}
 $(GRAPHS): $(GNUPLOT_DATA) $(GNUPLOT_CONF)
-	gnuplot -e "title='WGS queries vs nt on spark mesos'; output='$@'; data_file='$<'" $(GNUPLOT_CONF)
+	gnuplot -e "title='$(TITLE)'; output='$@'; data_file='$<'" $(GNUPLOT_CONF)
 
 ${GNUPLOT_DATA}: ${DBNAME}
 	#sqlite3 $< < ddl/select.sql | bin/data2gnuplot.pl > $@
