@@ -100,7 +100,7 @@ ${GRAPH_SIMPLE}: ${GNUPLOT_DATA_SIMPLE} ${GNUPLOT_CONF_SIMPLE}
 clean:
 	$(RM) ${GNUPLOT_DATA} ${GRAPHS} ${GRAPH_SIMPLE} ${GNUPLOT_DATA_SIMPLE}
 
-.PHONY: purge
-purge: clean
+.PHONY: distclean
+distclean: clean
 	$(RM) ${DBNAME} log/*
 
