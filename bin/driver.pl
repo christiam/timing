@@ -14,11 +14,13 @@ my $cmds = "etc/cmds.tab";
 my $num_repeats = 1;
 my $dry_run = 0;
 my $verbose = 0;
+my $skip_failures = 0;
 my $logfile = "";
 my $help_requested = 0;
 GetOptions("db=s"           => \$dbname,
            "cmds=s"         => \$cmds,
            "repeats=i"      => \$num_repeats,
+           "skip_failures"  => \$skip_failures,
            "verbose|v+"     => \$verbose,
            "dry_run"        => \$dry_run,
            "logfile=s"      => \$logfile,
@@ -67,7 +69,11 @@ sub main
         #####################################
             my $tmp_fh = File::Temp->new();
             my $cmd = "/usr/bin/time -o $tmp_fh $cmd2time";
-            run($cmd);
+            if ($skip_failures) {
+                try { run($cmd); } catch { $run_number = $num_repeats; };
+            } else  {
+                run($cmd); 
+            }
             chomp(my $timings = read_file($tmp_fh->filename));
             DEBUG("Read time output: '$timings'");
             my @data = (0)x4;
@@ -157,6 +163,10 @@ etc/cmds.tab)
 =item B<-repeats>
 
 Number of times to run each command (default: 1)
+
+=item B<-skip_failures>
+
+Skip command on after any failure (default: false)
 
 =item B<-verbose>
 
