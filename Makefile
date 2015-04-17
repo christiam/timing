@@ -1,6 +1,6 @@
 DATADIR=data
 DBNAME=${DATADIR}/timings.db
-NUM_REPEATS=1
+NUM_REPEATS?=1
 
 BASIC_GNUPLOT_CONF=etc/basic.gnuplot.conf
 VPATH = $(DATADIR)
@@ -30,7 +30,7 @@ GNUPLOT_CONF=etc/multi-series.gnuplot.conf
 
 .PHONY: all
 all: ${DBNAME}
-	bin/driver.pl -v -v -v -v -s
+	bin/driver.pl -v -v -v -v -s -repeats $(NUM_REPEATS)
 	#bin/driver.pl -v -v -v -v -s -repeats $(NUM_REPEATS) -rm_core_files
 
 $(DBNAME): setup
