@@ -16,7 +16,7 @@ EXECUTOR_RAM=7808M
 #EXECUTOR_RAM=2G
 SLICES=10
 
-rm $CMDS_FILE
+rm -f $CMDS_FILE
 for f in ${INPUT_FILES}; do
 for n in ${NUM_CORES} ; do
 	#output=simple-search-on-yarn-$n-cores.out
