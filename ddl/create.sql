@@ -1,3 +1,4 @@
+PRAGMA foreign_keys = ON;
 CREATE TABLE IF NOT EXISTS runtime (
     label           VARCHAR(255) PRIMARY KEY,
     ellapsed_time   FLOAT CHECK(ellapsed_time >= 0.0),
@@ -13,3 +14,11 @@ BEGIN
     SET finished_at = datetime('now', 'localtime')
     WHERE rowid = NEW.rowid;
 END;
+
+/*
+CREATE TABLE IF NOT EXISTS export(
+    label           VARCHAR(255) PRIMARY KEY,
+    exported        INTEGER DEFAULT 0,
+    FOREIGN KEY(label) REFERENCES runtime(label) ON DELETE CASCADE
+);
+*/
