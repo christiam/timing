@@ -7,7 +7,10 @@ use File::Slurp;
 use File::Temp;
 use Pod::Usage;
 use Try::Tiny;
+use DBI;
 use autodie;
+
+use constant SQL => "INSERT INTO runtime(label,ellapsed_time,system_time,user_time,pcpu,exit_status) VALUES(?,?,?,?,?,?)";
 
 my $dbname = "data/timings.db";
 my $cmds = "etc/cmds.tab";
@@ -44,6 +47,10 @@ sub main
 {
     $|++;
     $ENV{TIME} = "%e\t%U\t%S\t%P";
+
+    my $dbh = connect_to_sqlite($dbname);
+    my $sth = $dbh->prepare(SQL);
+
     foreach (read_file($cmds)) {
         next if (/^#|^$/);
         chomp;
@@ -82,15 +89,14 @@ sub main
             $timings =~ s/%//g;
             @data = split(/\t/, $timings) if (length $timings);
             push @data, $IPC::System::Simple::EXITVAL;
-            $cmd = "sqlite3 $dbname 'INSERT INTO runtime VALUES(\"$label4run\",";
-            $cmd .= sprintf("\"%f\",\"%f\",\"%f\", %d, %d, \"\");'", @data);
-            run($cmd);
+            $sth->execute($label4run, @data);
             if ($rm_core_files) {
                 no autodie; 
                 unlink glob("core.*");
             }
         }
     }
+    $dbh->disconnect();
 }
 
 # Initializes the logging for this script, defaulting to STDERR or the
@@ -130,19 +136,22 @@ sub run
     system($cmd) unless $dry_run;
 }
 
-### # Wrapper function to system that logs commands
-### sub run
-### {
-###     use IPC::System::Simple qw(EXIT_ANY runx);
-###     my $cmd = shift;
-###     TRACE($cmd);
-###     my @args = split(/ /, $cmd);
-###     my $program = shift @args;
-###     my $retval = $dry_run ? 0 : runx(EXIT_ANY, $program, @args);
-###     TRACE("Exit code = $retval");
-###     return $retval;
-### }
-### 
+# Connects to an SQLite database provided as its first argument
+sub connect_to_sqlite 
+{
+    use DBI;
+    my $sqlite_db = shift;
+    my $data_source = "dbi:SQLite:$sqlite_db";
+    my $dbh = undef;
+    eval {
+        $dbh = DBI->connect("$data_source", '', '',
+                               { RaiseError => 1, AutoCommit => 1 });
+        DEBUG("Connect to database server $data_source: OK");
+    };
+    LOGDIE("Failed to connect to database: $@") if ($@);
+    return $dbh;
+}
+
 __END__
 
 =head1 NAME
