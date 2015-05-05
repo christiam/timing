@@ -70,7 +70,8 @@ sub main
                 "min", $data{$_}->min(), 
                 "max", $data{$_}->max(),
                 "stddev", $data{$_}->standard_deviation(),
-                "sum", $data{$_}->sum();
+                "sum", $data{$_}->sum(),
+                "count", $data{$_}->count();
         }
     }
 }
