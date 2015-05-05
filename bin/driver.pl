@@ -89,7 +89,7 @@ sub main
             $timings =~ s/%//g;
             @data = split(/\t/, $timings) if (length $timings);
             push @data, $IPC::System::Simple::EXITVAL;
-            $sth->execute($label4run, @data);
+            save2db($sth, $label4run, @data);
             if ($rm_core_files) {
                 no autodie; 
                 unlink glob("core.*");
@@ -97,6 +97,27 @@ sub main
         }
     }
     $dbh->disconnect();
+}
+
+# Attempt multiple retries to save data in SQLite, to support multiple
+# processes
+sub save2db
+{
+    use constant MAX_RETRIES => 5;
+    use constant SECS2SLEEP => 1;
+    my $attempts = 0;
+    my $sth = shift;
+    my $label = shift;
+    my @data = @_;
+    while ($attempts < MAX_RETRIES) {
+        try { 
+            $sth->execute($label, @data); 
+            $attempts = MAX_RETRIES + 1;
+        } catch { 
+            $attempts++;
+            sleep(SECS2SLEEP);
+        };
+    }
 }
 
 # Initializes the logging for this script, defaulting to STDERR or the
