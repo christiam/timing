@@ -34,7 +34,7 @@ all: ${DBNAME}
 	#bin/driver.pl -v -v -v -v -s -repeats $(NUM_REPEATS) -rm_core_files
 
 $(DBNAME):
-	make -C ${DATADIR}
+	make -C ${DATADIR} `basename $@`
 
 %.png: %.dat
 	if [ -z "$T" ] ; then echo "Must define the T make variable for graph title"; exit 1; fi
@@ -108,7 +108,7 @@ clean:
 
 .PHONY: distclean
 distclean: clean
-	make -C ${DATADIR} distclean
+	make -C ${DATADIR} $@
 
 BASEDIR=`basename ${PWD}`
 archive:
