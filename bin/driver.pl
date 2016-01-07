@@ -83,11 +83,18 @@ sub main
             } else  {
                 run($cmd); 
             }
-            chomp(my $timings = read_file($tmp_fh->filename));
-            DEBUG("Read time output: '$timings'");
+            chomp(my @timings = read_file($tmp_fh->filename));
+            my $line_w_times = "";
+            foreach (@timings) {
+                if (split(/\t/) == 4) {
+                    $line_w_times = $_;
+                    last;
+                }
+            }
+            DEBUG("Read " . scalar(@timings) . " lines of time output, parsing '$line_w_times'");
             my @data = (0)x4;
-            $timings =~ s/%//g;
-            @data = split(/\t/, $timings) if (length $timings);
+            $line_w_times =~ s/%//g;
+            @data = split(/\t/, $line_w_times) if (length $line_w_times);
             push @data, $IPC::System::Simple::EXITVAL;
             save2db($sth, $label4run, @data);
             if ($rm_core_files) {

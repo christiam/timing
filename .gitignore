@@ -1,4 +1,5 @@
-data
-log
+*.db
+*.fsa
+*.log
 *.png
-cmds.tab
+*.tab

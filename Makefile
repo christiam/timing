@@ -33,10 +33,8 @@ all: ${DBNAME}
 	bin/driver.pl -v -v -v -v -s -repeats $(NUM_REPEATS)
 	#bin/driver.pl -v -v -v -v -s -repeats $(NUM_REPEATS) -rm_core_files
 
-$(DBNAME): setup
-
-%.db:
-	sqlite3 $@ < ddl/create.sql
+$(DBNAME):
+	make -C ${DATADIR}
 
 %.png: %.dat
 	if [ -z "$T" ] ; then echo "Must define the T make variable for graph title"; exit 1; fi
@@ -64,16 +62,19 @@ show: ${DBNAME}
 	bin/reports.pl -label all | sort -n
 
 .PHONY: reset
-reset: ${DBNAME}
-	sqlite3 ${DBNAME} < ddl/delete.sql
+reset:
+	make -C ${DATADIR} clean
 
-.PHONY: setup
-setup:
-	[ -d ${DATADIR} ] || mkdir ${DATADIR}
+TEST_CMD_FILE=test-cmd.tab
+${TEST_CMD_FILE}:
+	echo -e "foo\tdate" > $@
+	make -C ${DATADIR} testdb.db
 
 .PHONY: check
-check:
+check: ${TEST_CMD_FILE}
 	for f in bin/*.pl; do perl -c $$f ; done
+	bin/driver.pl -v -v -v -v -v -s -repeats 3 -c etc/cmds.tab -db ${DATADIR}/testdb.db
+	bin/reports.pl -label all -db ${DATADIR}/testdb.db
 
 .PHONY: simple
 simple: ${GRAPH_SIMPLE}
@@ -103,9 +104,26 @@ ${GRAPH_SIMPLE}: ${GNUPLOT_DATA_SIMPLE} ${GNUPLOT_CONF_SIMPLE}
 
 .PHONY: clean
 clean:
-	$(RM) ${GNUPLOT_DATA} ${GRAPHS} ${GRAPH_SIMPLE} ${GNUPLOT_DATA_SIMPLE}
+	$(RM) ${GNUPLOT_DATA} ${GRAPHS} ${GRAPH_SIMPLE} ${GNUPLOT_DATA_SIMPLE} ${TEST_CMD_FILE}
 
 .PHONY: distclean
 distclean: clean
-	$(RM) ${DBNAME} log/*
+	make -C ${DATADIR} distclean
 
+BASEDIR=`basename ${PWD}`
+archive:
+	cd .. && tar acvf ${BASEDIR}.tgz ${BASEDIR}
+
+.PHONY: help
+help:
+	@echo "The following targets are available:"
+	@echo "all (default): initialize database/data/log directories and run driver script. Configure with NUM_REPEATS"
+	@echo "show: Shows data from database and output from report script"
+	@echo "check: Checks the syntax of perl scripts"
+	@echo "simple: Creates simple graphs (needs manual customization)"
+	@echo "graphs: Creates multiple graphs (needs manual customization)"
+	@echo "dump: Dumps contents of database to stdout"
+	@echo "reset: Deletes database contents"
+	@echo "clean: Removes gnuplot data, graphs"
+	@echo "distclean: Removes database and invokes make clean"
+	@echo "archive: Creates a tarball of this directory"
