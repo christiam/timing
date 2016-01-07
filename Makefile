@@ -68,12 +68,14 @@ reset:
 TEST_CMD_FILE=test-cmd.tab
 ${TEST_CMD_FILE}:
 	echo -e "foo\tdate" > $@
+	echo -e "bar\tjunk" >> $@
 	make -C ${DATADIR} testdb.db
 
-.PHONY: check
-check: ${TEST_CMD_FILE}
+.PHONY: test
+test: ${TEST_CMD_FILE} reset
 	for f in bin/*.pl; do perl -c $$f ; done
-	bin/driver.pl -v -v -v -v -v -s -repeats 3 -c etc/cmds.tab -db ${DATADIR}/testdb.db
+	bin/driver.pl -v -v -v -v -v -s -repeats 3 -c ${TEST_CMD_FILE} -db ${DATADIR}/testdb.db
+	sqlite3 -header -column ${DATADIR}/testdb.db < ddl/select.sql
 	bin/reports.pl -label all -db ${DATADIR}/testdb.db
 
 .PHONY: simple

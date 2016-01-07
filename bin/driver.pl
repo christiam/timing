@@ -85,10 +85,19 @@ sub main
             }
             chomp(my @timings = read_file($tmp_fh->filename));
             my $line_w_times = "";
+            my $line_w_errors = ""; # on AWS EC2 stderr goes into the temporary file, rescue it
             foreach (@timings) {
                 if (split(/\t/) == 4) {
                     $line_w_times = $_;
-                    last;
+                } else {
+                    $line_w_errors = $_;
+                }
+            }
+            if ($IPC::System::Simple::EXITVAL != 0) {
+                if (length $line_w_errors) {
+                    ERROR("Command failed: '$line_w_errors'");
+                } else {
+                    ERROR("Command failed");
                 }
             }
             DEBUG("Read " . scalar(@timings) . " lines of time output, parsing '$line_w_times'");

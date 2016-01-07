@@ -20,7 +20,7 @@ u00001.fsa:
 	blastdbcmd -db nr -out $@ -entry 129295
 
 clean:
-	sqlite3 ${DB} < ../ddl/delete.sql
+	-for f in *.db; do if [ -s $$f ] ; then sqlite3 $$f < ../ddl/delete.sql; fi; done
 
 distclean:
 	$(RM) *.fsa *.db
