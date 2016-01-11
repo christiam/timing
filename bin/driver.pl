@@ -105,7 +105,7 @@ sub main
             $line_w_times =~ s/%//g;
             @data = split(/\t/, $line_w_times) if (length $line_w_times);
             push @data, $IPC::System::Simple::EXITVAL;
-            save2db($sth, $label4run, @data);
+            save2db($sth, $label4run, @data) unless $dry_run;
             if ($rm_core_files) {
                 no autodie; 
                 unlink glob("core.*");
