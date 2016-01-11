@@ -73,6 +73,7 @@ ${TEST_CMD_FILE}:
 
 .PHONY: test
 test: ${TEST_CMD_FILE} reset
+	make -C ddl $@
 	for f in bin/*.pl; do perl -c $$f ; done
 	bin/driver.pl -v -v -v -v -v -s -repeats 3 -c ${TEST_CMD_FILE} -db ${DATADIR}/testdb.db
 	sqlite3 -header -column ${DATADIR}/testdb.db < ddl/select.sql
