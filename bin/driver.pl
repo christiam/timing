@@ -7,10 +7,11 @@ use File::Slurp;
 use File::Temp;
 use Pod::Usage;
 use Try::Tiny;
+use Sys::Hostname;
 use DBI;
 use autodie;
 
-use constant SQL => "INSERT INTO runtime(label,ellapsed_time,system_time,user_time,pcpu,exit_status) VALUES(?,?,?,?,?,?)";
+use constant SQL => "INSERT INTO runtime(label,ellapsed_time,system_time,user_time,pcpu,exit_status,hostname) VALUES(?,?,?,?,?,?,?)";
 
 my $dbname = "data/timings.db";
 my $cmds = "etc/cmds.tab";
@@ -50,6 +51,7 @@ sub main
 
     my $dbh = connect_to_sqlite($dbname);
     my $sth = $dbh->prepare(SQL);
+    my $host = Sys::Hostname::hostname();
 
     foreach (read_file($cmds)) {
         next if (/^#|^$/);
@@ -101,10 +103,11 @@ sub main
                 }
             }
             DEBUG("Read " . scalar(@timings) . " lines of time output, parsing '$line_w_times'");
-            my @data = (0)x4;
+            my @data = (0)x5;
             $line_w_times =~ s/%//g;
             @data = split(/\t/, $line_w_times) if (length $line_w_times);
             push @data, $IPC::System::Simple::EXITVAL;
+            push @data, $host;
             save2db($sth, $label4run, @data) unless $dry_run;
             if ($rm_core_files) {
                 no autodie; 
