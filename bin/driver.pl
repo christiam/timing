@@ -11,7 +11,7 @@ use Sys::Hostname;
 use DBI;
 use autodie;
 
-use constant SQL => "INSERT INTO runtime(label,ellapsed_time,system_time,user_time,pcpu,exit_status,hostname) VALUES(?,?,?,?,?,?,?)";
+use constant SQL => "INSERT INTO runtime(label,ellapsed_time,user_time,system_time,pcpu,exit_status,hostname) VALUES(?,?,?,?,?,?,?)";
 
 my $dbname = "data/timings.db";
 my $cmds = "etc/cmds.tab";
@@ -103,7 +103,7 @@ sub main
                 }
             }
             DEBUG("Read " . scalar(@timings) . " lines of time output, parsing '$line_w_times'");
-            my @data = (0)x5;
+            my @data = (0)x4; # Ellapsed, user, system, PCPU
             $line_w_times =~ s/%//g;
             @data = split(/\t/, $line_w_times) if (length $line_w_times);
             push @data, $IPC::System::Simple::EXITVAL;
