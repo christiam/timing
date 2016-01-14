@@ -1,7 +1,7 @@
 PRAGMA foreign_keys = ON;
 CREATE TABLE IF NOT EXISTS runtime (
     label           VARCHAR(255) NOT NULL,
-    ellapsed_time   FLOAT CHECK(ellapsed_time >= 0.0),
+    elapsed_time   FLOAT CHECK(elapsed_time >= 0.0),
     system_time     FLOAT CHECK(system_time >= 0.0),
     user_time       FLOAT CHECK(user_time >= 0.0),
     pcpu            INTEGER CHECK(pcpu >= 0),

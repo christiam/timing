@@ -44,11 +44,11 @@ sub main
         @labels = get_all_labels($dbh);
     }
     foreach (@labels) {
-        my $sql = "select ellapsed_time from runtime where label like '$_-%'";
+        my $sql = "select elapsed_time from runtime where label like '$_-%'";
         TRACE($sql);
         my @result = map { $_ = $_->[0] } @{ $dbh->selectall_arrayref($sql) };
         if (@result == 0) {
-            $sql = "select ellapsed_time from runtime where label == '$_'";
+            $sql = "select elapsed_time from runtime where label == '$_'";
             @result = map { $_ = $_->[0] } @{ $dbh->selectall_arrayref($sql) };
         }
         DEBUG(join(" ", $_, @result));
@@ -142,7 +142,7 @@ __END__
 
 =head1 NAME
 
-B<reports.pl> - Produce reports from timing database (for ellapsed_time)
+B<reports.pl> - Produce reports from timing database (for elapsed_time)
 
 =head1 SYNOPSIS
 

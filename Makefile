@@ -42,7 +42,7 @@ $(DBNAME):
 
 %.dat: $(DBNAME)
 	if [ -z "$Q" ] ; then echo "Must define the Q make variable to query $(DBNAME)"; exit 1; fi
-	sqlite3 $^ "select label, ellapsed_time from runtime where label like '$Q-%'" | sed -e 's/$Q-//' | sort -n > $@
+	sqlite3 $^ "select label, elapsed_time from runtime where label like '$Q-%'" | sed -e 's/$Q-//' | sort -n > $@
 
 # This doesn't work, needs to be invoked by hand for each graph
 ##1336.png:
