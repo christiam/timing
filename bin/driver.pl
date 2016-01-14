@@ -7,7 +7,7 @@ use File::Slurp;
 use File::Temp;
 use Pod::Usage;
 use Try::Tiny;
-use Sys::Hostname;
+use Net::Domain;
 use DBI;
 use autodie;
 
@@ -51,7 +51,7 @@ sub main
 
     my $dbh = connect_to_sqlite($dbname);
     my $sth = $dbh->prepare(SQL);
-    my $host = Sys::Hostname::hostname();
+    my $host = Net::Domain::hostfqdn();
 
     foreach (read_file($cmds)) {
         next if (/^#|^$/);
