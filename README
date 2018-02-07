@@ -19,3 +19,5 @@ bin/multi-series-extractor.pl: intended for identical test cases run in series
 (e.g.: with N-M threads) that should be compared across the board.
 bin/data2gnuplot.pl: Plots multiple data sets into a single data file, intended
 to produce histograms
+
+Author: Christiam Camacho
