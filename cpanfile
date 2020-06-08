@@ -5,6 +5,6 @@ requires 'Log::Log4perl';
 requires 'Try::Tiny';
 requires 'Pod::Usage';
 requires 'DBI';
-requires 'DBI::SQLite';
+requires 'DBD::SQLite';
 requires 'Statistics::Descriptive';
 requires 'List::MoreUtils';
