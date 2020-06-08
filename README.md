@@ -17,8 +17,10 @@ format "label\tcmd" format.
 * `bin/multi-series-extractor.pl`: intended for identical test cases run in series (e.g.: with N-M threads) that should be compared across the board.
 * `bin/data2gnuplot.pl`: Plots multiple data sets into a single data file, intended to produce histograms
 
-Dependencies
-------------
+## Dependencies
 * `make`
 * SQLite3
 * See `cpanfile`
+
+## Known issues
+* You cannot use multiple commands in a single entry (e.g.: cmd1 && cmd2)
