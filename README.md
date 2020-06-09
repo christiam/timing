@@ -20,7 +20,7 @@ format "label\tcmd" format.
 ## Dependencies
 * `make`
 * SQLite3
-* See `cpanfile`
+* See `cpanfile`. You will need `gcc` to run `cpanm DBD::SQLite`
 
 ## Known issues
 * You cannot use multiple commands in a single entry (e.g.: cmd1 && cmd2)

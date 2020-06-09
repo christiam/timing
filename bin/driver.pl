@@ -2,6 +2,7 @@
 use strict;
 use warnings;
 use Log::Log4perl qw(:easy);
+use Config::Simple;
 use Getopt::Long;
 use File::Slurp;
 use File::Temp;
@@ -15,6 +16,7 @@ use constant SQL => "INSERT INTO runtime(label,elapsed_time,user_time,system_tim
 
 my $dbname = "data/timings.db";
 my $cmds = "etc/cmds.tab";
+my $cfg = "etc/timing.ini";
 my $num_repeats = 1;
 my $dry_run = 0;
 my $verbose = 0;
@@ -24,6 +26,7 @@ my $logfile = "";
 my $help_requested = 0;
 GetOptions("db=s"           => \$dbname,
            "cmds=s"         => \$cmds,
+           "cfg=s"          => \$cfg,
            "repeats=i"      => \$num_repeats,
            "skip_failures"  => \$skip_failures,
            "rm_core_files"  => \$rm_core_files,
@@ -52,6 +55,8 @@ sub main
     my $dbh = connect_to_sqlite($dbname);
     my $sth = $dbh->prepare(SQL);
     my $host = Net::Domain::hostfqdn();
+    my $config;
+    Config::Simple->import_from($cfg, \%config);
 
     foreach (read_file($cmds)) {
         next if (/^#|^$/);
@@ -78,6 +83,7 @@ sub main
             $cmd2time =~ s/$output/$output4run/;
         }
         #####################################
+            try { run($config{"$label4run.setup"}); } if (exists $config{"$label4run.setup"});
             my $tmp_fh = File::Temp->new();
             my $cmd = "/usr/bin/time -o $tmp_fh $cmd2time";
             if ($skip_failures) {
@@ -102,6 +108,7 @@ sub main
                     ERROR("Command failed");
                 }
             }
+            try { run($config{"$label4run.teardown"}); } if (exists $config{"$label4run.teardown"});
             DEBUG("Read " . scalar(@timings) . " lines of time output, parsing '$line_w_times'");
             my @data = (0)x4; # Ellapsed, user, system, PCPU
             $line_w_times =~ s/%//g;
