@@ -55,7 +55,7 @@ sub main
     my $dbh = connect_to_sqlite($dbname);
     my $sth = $dbh->prepare(SQL);
     my $host = Net::Domain::hostfqdn();
-    my $config;
+    my %config;
     Config::Simple->import_from($cfg, \%config);
 
     foreach (read_file($cmds)) {
