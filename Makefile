@@ -2,6 +2,8 @@ DATADIR=data
 DBNAME=${DATADIR}/timings.db
 NUM_REPEATS?=1
 
+LOCAL_PERL=local
+
 BASIC_GNUPLOT_CONF=etc/basic.gnuplot.conf
 VPATH = $(DATADIR)
 
@@ -32,6 +34,10 @@ GNUPLOT_CONF=etc/multi-series.gnuplot.conf
 all: ${DBNAME}
 	bin/driver.pl -v -v -v -v -s -repeats $(NUM_REPEATS)
 	#bin/driver.pl -v -v -v -v -s -repeats $(NUM_REPEATS) -rm_core_files
+
+${LOCAL_PERL}:
+	[ -d ${LOCAL_PERL} ] || mkdir ${LOCAL_PERL}
+	cpanm -L ${LOCAL_PERL} --installdeps .
 
 $(DBNAME):
 	make -C ${DATADIR} `basename $@`
