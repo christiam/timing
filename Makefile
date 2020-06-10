@@ -31,8 +31,8 @@ GNUPLOT_CONF=etc/multi-series.gnuplot.conf
 #GNUPLOT_DATA_SIMPLE=data/timings-simple.dat
 
 .PHONY: all
-all: ${DBNAME}
-	bin/driver.pl -v -v -v -v -s -repeats $(NUM_REPEATS)
+all: ${DBNAME} ${LOCAL_PERL}
+	perl -I${LOCAL_PERL} bin/driver.pl -v -v -v -v -s -repeats $(NUM_REPEATS)
 	#bin/driver.pl -v -v -v -v -s -repeats $(NUM_REPEATS) -rm_core_files
 
 ${LOCAL_PERL}:
@@ -117,11 +117,15 @@ clean:
 
 .PHONY: distclean
 distclean: clean
+	${RM} -r ${LOCAL_PERL}
 	make -C ${DATADIR} $@
 
 BASEDIR=`basename ${PWD}`
 archive:
 	cd .. && tar acvf ${BASEDIR}.tgz ${BASEDIR}
+
+check:
+	for f in $(wildcard bin/*.p[lm]); do perl -I${LOCAL_PERL} -c $$f; done
 
 .PHONY: help
 help:
