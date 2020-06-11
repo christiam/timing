@@ -1,3 +1,5 @@
+![CI](https://github.com/christiam/timing/workflows/CI/badge.svg)
+
 This is a generic runtime timing framework.
 
 By providing commands in the `etc/cmds.tab` file and setting the number of
