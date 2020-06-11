@@ -1,7 +1,6 @@
 # This is a basic workflow to help you get started with Actions
 
 name: CI
-uses: shogo82148/actions-setup-perl@v1.4.0
 
 
 # Controls when the action will run. Triggers the workflow on push or pull request
