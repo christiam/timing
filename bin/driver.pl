@@ -84,7 +84,10 @@ sub main
             $cmd2time =~ s/$output/$output4run/;
         }
         #####################################
-            try { run($config{"$label.setup"}); } if (exists $config{"$label.setup"});
+            if (exists $config{"$label.setup"}) {
+                try { run($config{"$label.setup"}); } 
+                catch { WARN("$label.setup command FAILED"); };
+            }
             my $tmp_fh = File::Temp->new();
             my $cmd = "/usr/bin/time -o $tmp_fh $cmd2time";
             if ($skip_failures) {
@@ -109,7 +112,10 @@ sub main
                     ERROR("Command failed");
                 }
             }
-            try { run($config{"$label.teardown"}); } if (exists $config{"$label.teardown"});
+            if (exists $config{"$label.teardown"}) {
+                try { run($config{"$label.teardown"}); } 
+                catch { WARN("$label.teardown command FAILED"); };
+            }
             DEBUG("Read " . scalar(@timings) . " lines of time output, parsing '$line_w_times'");
             my @data = (0)x4; # Ellapsed, user, system, PCPU
             $line_w_times =~ s/%//g;
