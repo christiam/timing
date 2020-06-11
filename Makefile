@@ -75,7 +75,7 @@ ${TEST_CMD_FILE}:
 test: ${TEST_CMD_FILE} reset
 	make -C ddl $@
 	for f in bin/*.pl; do perl -c $$f ; done
-	bin/driver.pl -v -v -v -v -v -s -repeats 3 -c ${TEST_CMD_FILE} -db ${DATADIR}/testdb.db
+	bin/driver.pl -v -v -v -v -v -s -repeats 3 -cmds ${TEST_CMD_FILE} -db ${DATADIR}/testdb.db
 	sqlite3 -header -column ${DATADIR}/testdb.db < ddl/select.sql
 	bin/reports.pl -label all -db ${DATADIR}/testdb.db
 
@@ -122,7 +122,7 @@ help:
 	@echo "The following targets are available:"
 	@echo "all (default): initialize database/data/log directories and run driver script. Configure with NUM_REPEATS"
 	@echo "show: Shows data from database and output from report script"
-	@echo "check: Checks the syntax of perl scripts"
+	@echo "test: Run the test suite"
 	@echo "simple: Creates simple graphs (needs manual customization)"
 	@echo "graphs: Creates multiple graphs (needs manual customization)"
 	@echo "dump: Dumps contents of database to stdout"
