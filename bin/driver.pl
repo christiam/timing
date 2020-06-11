@@ -87,6 +87,9 @@ sub main
             if (exists $config{"$label.setup"}) {
                 try { run($config{"$label.setup"}); } 
                 catch { WARN("$label.setup command FAILED"); };
+            } elsif (exists $config{"all.setup"}) {
+                try { run($config{"all.setup"}); } 
+                catch { WARN("all.setup command FAILED"); };
             }
             my $tmp_fh = File::Temp->new();
             my $cmd = "/usr/bin/time -o $tmp_fh $cmd2time";
@@ -115,6 +118,9 @@ sub main
             if (exists $config{"$label.teardown"}) {
                 try { run($config{"$label.teardown"}); } 
                 catch { WARN("$label.teardown command FAILED"); };
+            } elsif (exists $config{"all.teardown"}) {
+                try { run($config{"all.teardown"}); } 
+                catch { WARN("all.teardown command FAILED"); };
             }
             DEBUG("Read " . scalar(@timings) . " lines of time output, parsing '$line_w_times'");
             my @data = (0)x4; # Ellapsed, user, system, PCPU
