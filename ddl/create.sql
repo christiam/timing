@@ -14,7 +14,7 @@ CREATE TRIGGER IF NOT EXISTS finished_at_trigger AFTER INSERT ON runtime
 BEGIN
     UPDATE runtime
     SET finished_at = datetime('now', 'localtime')
-    WHERE rowid = NEW.rowid;
+    WHERE rowid = NEW.rowid and finished_at is '';
 END;
 
 /*
