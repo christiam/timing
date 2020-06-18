@@ -58,8 +58,8 @@ dump: ${DBNAME}
 
 .PHONY: show
 show: ${DBNAME}
-	#sqlite3 -header -column ${DBNAME} < ddl/select.sql
-	sqlite3 -header -column ${DBNAME} < ddl/report-brief.sql
+	sqlite3 -header -column ${DBNAME} < ddl/report-full.sql
+	#sqlite3 -header -column ${DBNAME} < ddl/report-brief.sql
 	bin/reports.pl -label all | sort -n
 
 .PHONY: reset
