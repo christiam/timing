@@ -73,7 +73,7 @@ sub main
     }
     ###################################### 
         for (my $run_number = 0; $run_number < $num_repeats; $run_number++) {
-            my $setup_exit_code, $exit_code, $teardown_exit_code = (0)x3;
+            my ($setup_exit_code, $exit_code, $teardown_exit_code) = (0)x3;
             my $label4run = $label . "-" . ($run_number+1);
             if ($num_repeats == 1) {
                 $label4run = $label;
