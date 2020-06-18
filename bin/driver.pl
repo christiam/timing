@@ -73,6 +73,7 @@ sub main
     }
     ###################################### 
         for (my $run_number = 0; $run_number < $num_repeats; $run_number++) {
+            my $setup_exit_code, $exit_code, $teardown_exit_code = (0)x3;
             my $label4run = $label . "-" . ($run_number+1);
             if ($num_repeats == 1) {
                 $label4run = $label;
@@ -86,17 +87,21 @@ sub main
         #####################################
             if (exists $config{"$label.setup"}) {
                 try { run($config{"$label.setup"}); } 
-                catch { WARN("$label.setup command FAILED"); };
+                catch { WARN("$label.setup command FAILED"); }
+                finally { $setup_exit_code = $IPC::System::Simple::EXITVAL; };
             } elsif (exists $config{"all.setup"}) {
                 try { run($config{"all.setup"}); } 
-                catch { WARN("all.setup command FAILED"); };
+                catch { WARN("all.setup command FAILED"); }
+                finally { $setup_exit_code = $IPC::System::Simple::EXITVAL; };
             }
             my $tmp_fh = File::Temp->new();
             my $cmd = "/usr/bin/time -o $tmp_fh $cmd2time";
             if ($skip_failures) {
-                try { run($cmd); } catch { $run_number = $num_repeats; };
+                try { run($cmd); } catch { $run_number = $num_repeats; }
+                finally { $exit_code = $IPC::System::Simple::EXITVAL; };
             } else  {
                 run($cmd); 
+                $exit_code = $IPC::System::Simple::EXITVAL;
             }
             chomp(my @timings = read_file($tmp_fh->filename));
             my $line_w_times = "";
@@ -108,7 +113,7 @@ sub main
                     $line_w_errors = $_;
                 }
             }
-            if ($IPC::System::Simple::EXITVAL != 0) {
+            if ($exit_code != 0) {
                 if (length $line_w_errors) {
                     ERROR("Command failed: '$line_w_errors'");
                 } else {
@@ -119,15 +124,16 @@ sub main
             my @data = (0)x4; # Ellapsed, user, system, PCPU
             $line_w_times =~ s/%//g;
             @data = split(/\t/, $line_w_times) if (length $line_w_times);
-            push @data, $IPC::System::Simple::EXITVAL;
-            push @data, $host;
             if (exists $config{"$label.teardown"}) {
                 try { run($config{"$label.teardown"}); } 
-                catch { WARN("$label.teardown command FAILED"); };
+                catch { WARN("$label.teardown command FAILED"); }
+                finally { $teardown_exit_code = $IPC::System::Simple::EXITVAL; };
             } elsif (exists $config{"all.teardown"}) {
                 try { run($config{"all.teardown"}); } 
-                catch { WARN("all.teardown command FAILED"); };
+                catch { WARN("all.teardown command FAILED"); }
+                finally { $teardown_exit_code = $IPC::System::Simple::EXITVAL; };
             }
+            push @data, ($exit_code, $host, $setup_exit_code, $teardown_exit_code);
             save2db($sth, $label4run, @data) unless $dry_run;
             if ($rm_core_files) {
                 no autodie; 
