@@ -115,6 +115,12 @@ sub main
                     ERROR("Command failed");
                 }
             }
+            DEBUG("Read " . scalar(@timings) . " lines of time output, parsing '$line_w_times'");
+            my @data = (0)x4; # Ellapsed, user, system, PCPU
+            $line_w_times =~ s/%//g;
+            @data = split(/\t/, $line_w_times) if (length $line_w_times);
+            push @data, $IPC::System::Simple::EXITVAL;
+            push @data, $host;
             if (exists $config{"$label.teardown"}) {
                 try { run($config{"$label.teardown"}); } 
                 catch { WARN("$label.teardown command FAILED"); };
@@ -122,12 +128,6 @@ sub main
                 try { run($config{"all.teardown"}); } 
                 catch { WARN("all.teardown command FAILED"); };
             }
-            DEBUG("Read " . scalar(@timings) . " lines of time output, parsing '$line_w_times'");
-            my @data = (0)x4; # Ellapsed, user, system, PCPU
-            $line_w_times =~ s/%//g;
-            @data = split(/\t/, $line_w_times) if (length $line_w_times);
-            push @data, $IPC::System::Simple::EXITVAL;
-            push @data, $host;
             save2db($sth, $label4run, @data) unless $dry_run;
             if ($rm_core_files) {
                 no autodie; 
