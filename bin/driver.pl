@@ -12,7 +12,7 @@ use Net::Domain;
 use DBI;
 use autodie;
 
-use constant SQL => "INSERT INTO runtime(label,elapsed_time,user_time,system_time,pcpu,exit_status,hostname,setup_exit_code,teardown_exit_code) VALUES(?,?,?,?,?,?,?,?,?)";
+use constant SQL => "INSERT INTO runtime(label,elapsed_time,user_time,system_time,pcpu,exit_status,hostname,setup_exit_status,teardown_exit_status) VALUES(?,?,?,?,?,?,?,?,?)";
 
 my $dbname = "data/timings.db";
 my $cmds = "etc/cmds.tab";
