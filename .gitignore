@@ -4,3 +4,12 @@
 *.png
 *.tab
 local
+*~
+typescript*
+
+nr.*
+nt.*
+Betacorona*
+taxdb*
+swissprot*
+pdbnt*
