@@ -17,13 +17,17 @@ my $dry_run = 0;
 my $verbose = 0;
 my $logfile = "";
 my $help_requested = 0;
-GetOptions("db=s"           => \$dbname,
-           "label=s"        => \@labels,
-           "dump"           => \$dump,
-           "verbose|v+"     => \$verbose,
-           "dry_run"        => \$dry_run,
-           "logfile=s"      => \$logfile,
-           "help|?"         => \$help_requested) || pod2usage(2);
+my ($omit_failures, $omit_setup_failures, $omit_teardown_failures) = (0)x3;
+GetOptions("db=s"                       => \$dbname,
+           "label=s"                    => \@labels,
+           "dump"                       => \$dump,
+           "omit_failures"              => \$omit_failures,
+           "omit_setup_failures"        => \$omit_setup_failures,
+           "omit_teardown_failures"     => \$omit_teardown_failures,
+           "verbose|v+"                 => \$verbose,
+           "dry_run"                    => \$dry_run,
+           "logfile=s"                  => \$logfile,
+           "help|?"                     => \$help_requested) || pod2usage(2);
 pod2usage(-verbose=>2) if ($help_requested);
 pod2usage("Missing database") unless (-s $dbname);
 pod2usage("Missing labels") unless (@labels);
@@ -81,6 +85,9 @@ sub get_all_labels
     use List::MoreUtils qw(uniq);
     my $dbh = shift;
     my $sql = "select distinct(label) from runtime";
+    $sql .= " where exit_status == 0" if $omit_failures;
+    $sql .= " and setup_exit_status == 0" if $omit_setup_failures;
+    $sql .= " and teardown_exit_status == 0" if $omit_teardown_failures;
     my @array = map { $_ = $_->[0] } @{ $dbh->selectall_arrayref($sql) };
     s/-\d+$// foreach @array;   # drop the repeat number, if any
     return uniq @array;
