@@ -1,5 +1,5 @@
 DATADIR=data
-DBNAME=${DATADIR}/timings.db
+DBNAME?=${DATADIR}/timings.db
 NUM_REPEATS?=1
 
 BASIC_GNUPLOT_CONF=etc/basic.gnuplot.conf
