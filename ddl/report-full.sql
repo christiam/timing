@@ -1,3 +1,4 @@
+.width 40
 SELECT label,
        elapsed_time 'elapsed',
        system_time 'system',
@@ -8,4 +9,5 @@ SELECT label,
        teardown_exit_status 'teardown',
        finished_at,
        hostname
-FROM runtime;
+FROM runtime
+ORDER BY label, finished_at desc;
