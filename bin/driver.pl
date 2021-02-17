@@ -129,7 +129,7 @@ sub main
                 }
             }
             DEBUG("Read " . scalar(@timings) . " lines of time output, parsing '$line_w_times'");
-            my @data = (0)x4; # Ellapsed, user, system, PCPU
+            my @data = (0)x7; # Ellapsed, user, system, PCPU
             $line_w_times =~ s/%//g;
             @data = split(/\t/, $line_w_times) if (length $line_w_times);
             if (exists $config{"$label.teardown"}) {
