@@ -58,7 +58,7 @@ sub main
     # %M: Maximum resident set size of the process during its lifetime, in Kbytes.
     # %t: Average resident set size of the process, in Kbytes.
     # %K: Average total (data+stack+text) memory use of the process, in Kbytes.
-    $ENV{TIME} = "%e\t%U\t%S\t%P\t%M\t%t\%K";
+    $ENV{TIME} = "%e\t%U\t%S\t%P\t%M\t%t\t%K";
 
     my $dbh = connect_to_sqlite($dbname);
     my $sth = $dbh->prepare(SQL);
