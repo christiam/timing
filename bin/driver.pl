@@ -12,7 +12,7 @@ use Net::Domain;
 use DBI;
 use autodie;
 
-use constant SQL => "INSERT INTO runtime(label,elapsed_time,user_time,system_time,pcpu,exit_status,hostname,setup_exit_status,teardown_exit_status) VALUES(?,?,?,?,?,?,?,?,?)";
+use constant SQL => "INSERT INTO runtime(label,elapsed_time,user_time,system_time,pcpu,mrss,arss,avg_mem_usage,exit_status,hostname,setup_exit_status,teardown_exit_status) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)";
 
 my $dbname = "data/timings.db";
 my $cmds = "etc/cmds.tab";
@@ -50,7 +50,15 @@ try {
 sub main
 {
     $|++;
-    $ENV{TIME} = "%e\t%U\t%S\t%P";
+    # From man page
+    # %e: elapsed time in seconds
+    # %U: CPU-seconds in user space
+    # %S: CPU-seconds in kernel
+    # %P: Percentage CPU, computed as (%U + %S) / %E.
+    # %M: Maximum resident set size of the process during its lifetime, in Kbytes.
+    # %t: Average resident set size of the process, in Kbytes.
+    # %K: Average total (data+stack+text) memory use of the process, in Kbytes.
+    $ENV{TIME} = "%e\t%U\t%S\t%P\t%M\t%t\%K";
 
     my $dbh = connect_to_sqlite($dbname);
     my $sth = $dbh->prepare(SQL);
@@ -107,7 +115,7 @@ sub main
             my $line_w_times = "";
             my $line_w_errors = ""; # on AWS EC2 stderr goes into the temporary file, rescue it
             foreach (@timings) {
-                if (split(/\t/) == 4) {
+                if (split(/\t/) == 7) {
                     $line_w_times = $_;
                 } else {
                     $line_w_errors = $_;
