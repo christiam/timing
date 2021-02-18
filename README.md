@@ -2,17 +2,26 @@
 
 This is a generic runtime timing framework.
 
+It has 2 modes of operation: consecutive tests and concurrent tests.
+
+Consecutive tests
+: This is the definition of the first term.
+
+Concurrent tests
+: This is one definition of the second term.
+: This is another definition of the second term.
+
 By providing commands in the `etc/cmds.tab` file and setting the number of
 repetitions on the `Makefile` (default value of 1 provided), one can record the
 runtime (wall clock, system and user time as well as timestamp) of test cases.
 
 # Instructions
 1. Edit the `bin/setup-tests.sh` script to easily overwrite the file containing
-the commands to run (etc/cmds.tab). This file should contain lines with the
+the commands to run (`etc/cmds.tab`). This file should contain lines with the
 format "label\tcmd" format.
 2. Run `make help` for a description of the targets
 
-## Manifest
+## Tools
 * `bin/driver.pl`: Main driver script
 * `bin/reports.pl`: Extracts data from database and prints various statistical measures
 * `bin/setup-tests.sh`: facilitates setting up the system to run tests
