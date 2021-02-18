@@ -102,7 +102,7 @@ sub main
         $pm->run_on_wait( sub {
             my $pmem = &collect_mem_usage();
             my $pcpu = &collect_cpu_usage();
-            DEBUG("system_info: mem: $pmem%, CPU=$pcpu%");
+            TRACE("system_info: mem: $pmem%, CPU=$pcpu%");
             &save2db($sth_sysinfo, $host, ($pmem, $pcpu)) unless $dry_run;
         }, $sampling_interval);
     }
