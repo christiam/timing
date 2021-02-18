@@ -24,6 +24,10 @@ The framework has 2 modes of operation: *consecutive tests* and *concurrent test
 * `NUM_REPEATS` is ignored in this mode.
 * Overall system information is recorded: percentage of CPU and memory used.
 
+# Installation
+1. Clone this repo: `git clone https://github.com/christiam/timing.git`
+2. Install dependencies: `cd timing && cpanm --installdeps .`
+
 # Instructions
 1. Create a *commands file* (or edit the `bin/setup-tests.sh` script to help you create it/them).
 2. Run `make help` for a description of the targets
@@ -44,3 +48,7 @@ The framework has 2 modes of operation: *consecutive tests* and *concurrent test
 
 ## Known issues
 * You cannot use multiple commands in a single entry (e.g.: cmd1 && cmd2)
+
+## Future work
+* Implement collection of overall system information collection
+* Refactor/dockerize
