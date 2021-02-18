@@ -11,7 +11,7 @@ CMDS_FILE=etc/cmds.tab
 h=/home/ec2-user
 fasta_input=${1:-$h/query.fna}
 fasta_file_extension=$(echo $fasta_input | cut -f2 -d.)
-fasta_file_prefix=$(echo $fasta_input | cut -f1 -d.)
+fasta_file_prefix=$(basename $fasta_input | cut -f1 -d.)
 db=${2:-ref_viruses_rep_genomes}
 declare -A parts2threads=( [16]=2 [8]=4 [4]=8 [2]=16 [1]=32 )
 
@@ -21,7 +21,7 @@ for n in 16 8 4 2 1; do
     rm -f $cmds_file
 
     for m in $(seq $n); do
-        query=$fasta_file_prefix.part-$m.$fasta_file_extension
+        query=$h/queries-$n-parts/$fasta_file_prefix.part-$m.$fasta_file_extension
         if [ $n -eq 1 ] ; then
             query=$fasta_input
         fi
