@@ -60,7 +60,7 @@ dump: ${DBNAME}
 show: ${DBNAME}
 	sqlite3 -header -column ${DBNAME} < ddl/report-full.sql
 	#sqlite3 -header -column ${DBNAME} < ddl/report-brief.sql
-	bin/reports.pl -label all | sort -n
+	bin/reports.pl -db ${DBNAME} -label all | sort -n
 
 .PHONY: reset
 reset:
@@ -79,6 +79,22 @@ test: ${TEST_CMD_FILE} reset
 	bin/driver.pl -v -v -v -v -v -s -repeats 3 -cmds ${TEST_CMD_FILE} -db ${DATADIR}/testdb.db
 	sqlite3 -header -column ${DATADIR}/testdb.db < ddl/select.sql
 	bin/reports.pl -label all -db ${DATADIR}/testdb.db
+	${RM} $<
+
+TEST_CMD_FILE_PARALLEL=test-cmd-parallel.tab
+${TEST_CMD_FILE_PARALLEL}:
+	echo -e "job1\tdate" > $@
+	echo -e "job2\tdate" >> $@
+	echo -e "job3\tsleep 3" >> $@
+	echo -e "job4\tsleep 2" >> $@
+	echo -e "job5\tdate" >> $@
+
+.PHONY: test_parallel
+test_parallel: ${TEST_CMD_FILE_PARALLEL} reset
+	bin/driver.pl -v -v -v -v -v -s -parallel -cmds $< -db ${DATADIR}/testdb.db
+	sqlite3 -header -column ${DATADIR}/testdb.db < ddl/select.sql
+	bin/reports.pl -label all -db ${DATADIR}/testdb.db
+	${RM} $<
 
 .PHONY: simple
 simple: ${GRAPH_SIMPLE}

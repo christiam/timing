@@ -11,6 +11,7 @@ use Try::Tiny;
 use Net::Domain;
 use DBI;
 use autodie;
+use Parallel::ForkManager;
 
 use constant SQL => "INSERT INTO runtime(label,elapsed_time,user_time,system_time,pcpu,mrss,arss,avg_mem_usage,exit_status,hostname,setup_exit_status,teardown_exit_status) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)";
 
@@ -18,6 +19,7 @@ my $dbname = "data/timings.db";
 my $cmds = "etc/cmds.tab";
 my $cfg = "etc/timing.ini";
 my $num_repeats = 1;
+my $parallel = 0;  # run jobs in parallel
 my $dry_run = 0;
 my $verbose = 0;
 my $skip_failures = 0;
@@ -28,6 +30,7 @@ GetOptions("db=s"           => \$dbname,
            "cmds=s"         => \$cmds,
            "cfg=s"          => \$cfg,
            "repeats=i"      => \$num_repeats,
+           "parallel"       => \$parallel,
            "skip_failures"  => \$skip_failures,
            "rm_core_files"  => \$rm_core_files,
            "verbose|v+"     => \$verbose,
@@ -39,6 +42,7 @@ pod2usage("Missing command file") unless (-s $cmds);
 pod2usage("Missing database") unless (-s $dbname);
 pod2usage("Invalid number of repeats") unless ($num_repeats > 0);
 $verbose = 5 if ($dry_run and $verbose == 0);
+$num_repeats = 1 if $parallel;
 
 try {
     init_logging($logfile, $verbose);
@@ -47,9 +51,36 @@ try {
     LOGDIE("Caught exception: $_");
 };
 
+# Crude way to get the number of processors in linux
+sub get_num_procs
+{
+    open (my $handle, "<", "/proc/cpuinfo");
+    my $retval = scalar (map /^processor/, <$handle>);
+    close $handle;
+    return $retval;
+}
+
 sub main
 {
     $|++;
+
+    my @lines = grep { !/^#|^$/ } read_file($cmds);
+    my $num_parallel_jobs = scalar(@lines);
+    my $num_procs = &get_num_procs;
+    if ($num_parallel_jobs > $num_procs) {
+        LOGDIE("The number of commands ($num_parallel_jobs) exceeds the number of available processors ($num_procs)");
+    }
+    my $pm = $parallel
+        ? Parallel::ForkManager->new($num_parallel_jobs)
+        : undef;
+
+    if (defined $pm) {
+        $pm->run_on_finish( sub {
+            my ($pid, $exit_code, $ident) = @_;
+            DEBUG("Child PID $pid ($ident) finished with exit code $exit_code");
+        });
+    }
+
     # From man page
     # %e: elapsed time in seconds
     # %U: CPU-seconds in user space
@@ -67,88 +98,96 @@ sub main
     Config::Simple->import_from($cfg, \%config) if -f $cfg;
     DEBUG("Read config file $cfg") if -f $cfg;
 
-    foreach (read_file($cmds)) {
-        next if (/^#|^$/);
+    DATA_LOOP:
+    foreach (@lines) {
         chomp;
-        my @F = split(/\t/);
-        LOGDIE("Invalid input: tab separated label and command expected") if (@F != 2);
-        my $label = $F[0];
-        my $cmd2time = $F[1];
-    # HACK FOR SPARK AND OUTPUT IN HDFS
-    my $output;
-    if ($cmd2time =~ /spark-submit.*\.txt\s+(.*)\s+DUMMY_RID$/) {
-        $output = $1;
-    }
-    ###################################### 
-        for (my $run_number = 0; $run_number < $num_repeats; $run_number++) {
-            my ($setup_exit_code, $exit_code, $teardown_exit_code) = (0)x3;
-            my $label4run = $label . "-" . ($run_number+1);
-            if ($num_repeats == 1) {
-                $label4run = $label;
-            }
+        my $pid = 0;
+        if (defined $pm) {
+            $pid = $pm->start($_) and next DATA_LOOP;
+        }
+        if ($pid == 0) {
+            my @F = split(/\t/);
+            LOGDIE("Invalid input: tab separated label and command expected") if (@F != 2);
+            my $label = $F[0];
+            my $cmd2time = $F[1];
         # HACK FOR SPARK AND OUTPUT IN HDFS
-        if (defined $output and $num_repeats != 1) {
-            $cmd2time = $F[1];
-            my $output4run = $output . "-" . ($run_number+1);
-            $cmd2time =~ s/$output/$output4run/;
+        my $output;
+        if ($cmd2time =~ /spark-submit.*\.txt\s+(.*)\s+DUMMY_RID$/) {
+            $output = $1;
         }
-        #####################################
-            if (exists $config{"$label.setup"}) {
-                try { run($config{"$label.setup"}); } 
-                catch { WARN("$label.setup command FAILED"); }
-                finally { $setup_exit_code = $IPC::System::Simple::EXITVAL; };
-            } elsif (exists $config{"all.setup"}) {
-                try { run($config{"all.setup"}); } 
-                catch { WARN("all.setup command FAILED"); }
-                finally { $setup_exit_code = $IPC::System::Simple::EXITVAL; };
+        ###################################### 
+            for (my $run_number = 0; $run_number < $num_repeats; $run_number++) {
+                my ($setup_exit_code, $exit_code, $teardown_exit_code) = (0)x3;
+                my $label4run = $label . "-" . ($run_number+1);
+                $label4run = $label if ($num_repeats == 1);
+            # HACK FOR SPARK AND OUTPUT IN HDFS
+            if (defined $output and $num_repeats != 1) {
+                $cmd2time = $F[1];
+                my $output4run = $output . "-" . ($run_number+1);
+                $cmd2time =~ s/$output/$output4run/;
             }
-            my $tmp_fh = File::Temp->new();
-            my $cmd = "/usr/bin/time -o $tmp_fh $cmd2time";
-            if ($skip_failures) {
-                try { run($cmd); } catch { $run_number = $num_repeats; }
-                finally { $exit_code = $IPC::System::Simple::EXITVAL; };
-            } else  {
-                run($cmd); 
-                $exit_code = $IPC::System::Simple::EXITVAL;
-            }
-            chomp(my @timings = read_file($tmp_fh->filename));
-            my $line_w_times = "";
-            my $line_w_errors = ""; # on AWS EC2 stderr goes into the temporary file, rescue it
-            foreach (@timings) {
-                if (split(/\t/) == 7) {
-                    $line_w_times = $_;
-                } else {
-                    $line_w_errors = $_;
+            #####################################
+                if (exists $config{"$label.setup"}) {
+                    try { run($config{"$label.setup"}); } 
+                    catch { WARN("$label.setup command FAILED"); }
+                    finally { $setup_exit_code = $IPC::System::Simple::EXITVAL; };
+                } elsif (exists $config{"all.setup"}) {
+                    try { run($config{"all.setup"}); } 
+                    catch { WARN("all.setup command FAILED"); }
+                    finally { $setup_exit_code = $IPC::System::Simple::EXITVAL; };
                 }
-            }
-            if ($exit_code != 0) {
-                if (length $line_w_errors) {
-                    ERROR("Command failed: '$line_w_errors'");
-                } else {
-                    ERROR("Command failed");
+                my $tmp_fh = File::Temp->new();
+                my $cmd = "/usr/bin/time -o $tmp_fh $cmd2time";
+                if ($skip_failures) {
+                    try { run($cmd); } catch { $run_number = $num_repeats; }
+                    finally { $exit_code = $IPC::System::Simple::EXITVAL; };
+                } else  {
+                    run($cmd); 
+                    $exit_code = $IPC::System::Simple::EXITVAL;
                 }
+                chomp(my @timings = read_file($tmp_fh->filename));
+                my $line_w_times = "";
+                my $line_w_errors = ""; # on AWS EC2 stderr goes into the temporary file, rescue it
+                foreach (@timings) {
+                    if (split(/\t/) == 7) {
+                        $line_w_times = $_;
+                    } else {
+                        $line_w_errors = $_;
+                    }
+                }
+                if ($exit_code != 0) {
+                    if (length $line_w_errors) {
+                        ERROR("Command failed: '$line_w_errors'");
+                    } else {
+                        ERROR("Command failed");
+                    }
+                }
+                DEBUG("Read " . scalar(@timings) . " lines of time output, parsing '$line_w_times'");
+                my @data = (0)x7; # Ellapsed, user, system, PCPU
+                $line_w_times =~ s/%//g;
+                @data = split(/\t/, $line_w_times) if (length $line_w_times);
+                if (exists $config{"$label.teardown"}) {
+                    try { run($config{"$label.teardown"}); } 
+                    catch { WARN("$label.teardown command FAILED"); }
+                    finally { $teardown_exit_code = $IPC::System::Simple::EXITVAL; };
+                } elsif (exists $config{"all.teardown"}) {
+                    try { run($config{"all.teardown"}); } 
+                    catch { WARN("all.teardown command FAILED"); }
+                    finally { $teardown_exit_code = $IPC::System::Simple::EXITVAL; };
+                }
+                push @data, ($exit_code, $host, $setup_exit_code, $teardown_exit_code);
+                save2db($sth, $label4run, @data) unless $dry_run;
+                if ($rm_core_files) {
+                    no autodie; 
+                    unlink glob("core.*");
+                }
+                $pm->finish($exit_code) if defined $pm;
             }
-            DEBUG("Read " . scalar(@timings) . " lines of time output, parsing '$line_w_times'");
-            my @data = (0)x7; # Ellapsed, user, system, PCPU
-            $line_w_times =~ s/%//g;
-            @data = split(/\t/, $line_w_times) if (length $line_w_times);
-            if (exists $config{"$label.teardown"}) {
-                try { run($config{"$label.teardown"}); } 
-                catch { WARN("$label.teardown command FAILED"); }
-                finally { $teardown_exit_code = $IPC::System::Simple::EXITVAL; };
-            } elsif (exists $config{"all.teardown"}) {
-                try { run($config{"all.teardown"}); } 
-                catch { WARN("all.teardown command FAILED"); }
-                finally { $teardown_exit_code = $IPC::System::Simple::EXITVAL; };
-            }
-            push @data, ($exit_code, $host, $setup_exit_code, $teardown_exit_code);
-            save2db($sth, $label4run, @data) unless $dry_run;
-            if ($rm_core_files) {
-                no autodie; 
-                unlink glob("core.*");
-            }
+        } else {
+            DEBUG("Started PID $pid for $_");
         }
     }
+    $pm->wait_all_children if defined $pm;
     $dbh->disconnect();
 }
 
