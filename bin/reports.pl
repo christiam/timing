@@ -78,6 +78,24 @@ sub main
                 "count", $data{$_}->count();
         }
     }
+
+    # Display stats for system info
+    foreach my $metric (qw(pmem_usage pcpu_usage)) {
+        my $sql = "select $metric from system_info";
+        TRACE($sql);
+        my @result = map { $_ = $_->[0] } @{ $dbh->selectall_arrayref($sql) };
+        next if (@result == 0);
+        my $stat = Statistics::Descriptive::Full->new();
+        $stat->add_data(@result);
+        $data{$metric} = $stat;
+        print $metric, 
+            "median", $data{$metric}->median(), 
+            "mean", $data{$metric}->mean(), 
+            "min", $data{$metric}->min(), 
+            "max", $data{$metric}->max(),
+            "stddev", $data{$metric}->standard_deviation(),
+            "count", $data{$metric}->count();
+    }
 }
 
 sub get_all_labels
