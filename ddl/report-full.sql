@@ -14,3 +14,10 @@ SELECT label,
        hostname
 FROM runtime
 ORDER BY label, finished_at desc;
+
+SELECT hostname,
+       timestamp, 
+       pmem_usage 'RAM usage %', 
+       pcpu_usage 'CPU usage %'
+FROM system_info
+ORDER BY timestamp DESC;
