@@ -1,6 +1,7 @@
 DATADIR=data
 DBNAME?=${DATADIR}/timings.db
 NUM_REPEATS?=1
+CMDS_FILE?=etc/cmds.tab
 
 BASIC_GNUPLOT_CONF=etc/basic.gnuplot.conf
 VPATH = $(DATADIR)
@@ -30,8 +31,18 @@ GNUPLOT_CONF=etc/multi-series.gnuplot.conf
 
 .PHONY: all
 all: ${DBNAME}
-	bin/driver.pl -v -v -v -v -s -repeats $(NUM_REPEATS)
+	bin/driver.pl -v -v -v -v -s -repeats $(NUM_REPEATS) -cmds ${CMDS_FILE}
 	#bin/driver.pl -v -v -v -v -s -repeats $(NUM_REPEATS) -rm_core_files
+
+run_parallel: ${DBNAME}
+	bin/driver.pl -v -v -v -v -s -parallel -cmds ${CMDS_FILE}
+
+eb785:
+	bin/driver.pl -v -v -v -v -s -parallel -cmds etc/cmds-16.tab
+	bin/driver.pl -v -v -v -v -s -parallel -cmds etc/cmds-8.tab
+	bin/driver.pl -v -v -v -v -s -parallel -cmds etc/cmds-4.tab
+	bin/driver.pl -v -v -v -v -s -parallel -cmds etc/cmds-2.tab
+	bin/driver.pl -v -v -v -v -s -parallel -cmds etc/cmds-1.tab
 
 $(DBNAME):
 	make -C ${DATADIR} `basename $@`
