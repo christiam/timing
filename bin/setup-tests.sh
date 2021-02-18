@@ -3,18 +3,9 @@
 #
 # Author: Christiam Camacho (camacho@ncbi.nlm.nih.gov)
 
+SCRIPT_DIR=$(cd "`dirname "$0"`"; pwd)
+
 CMDS_FILE=etc/cmds.tab
-CMD_DIR=/net/snowman/vol/export2/camacho/work/aws/timing/data
-INPUT_FILES="blast_cmd.1336.txt blast_cmd.15795.txt blast_cmd.139340.txt"
-JARFILE=/net/snowman/vol/export2/camacho/workspace/blastonspark/target/blastOnSpark-1.0.jar
-CLASS=gov.ncbi.blast.app.BlastOnSparkDaemon
-#NUM_CORES="2 4 8 12"
-#NUM_CORES="2 4 8 16 32 64 128"
-NUM_CORES="128 64 32 16 8 4 2 "
-# Yarn cluster at NCBI cannot take more than this
-EXECUTOR_RAM=7808M
-#EXECUTOR_RAM=2G
-SLICES=10
 
 # Update for BLAST+ baseline tests. Assumes query splits were generated using tools/fasta/split-fasta.sh
 h=/home/ec2-user
@@ -22,19 +13,33 @@ fasta_input=${1:-$h/query.fna}
 fasta_file_extension=$(echo $fasta_input | cut -f2 -d.)
 fasta_file_prefix=$(echo $fasta_input | cut -f1 -d.)
 db=${2:-ref_viruses_rep_genomes}
+declare -A parts2threads=( [16]=2 [8]=4 [4]=8 [2]=16 [1]=32 )
+
 for n in 16 8 4 2 1; do
     dir=$h/queries-$n-parts
-    cmds_file=$h/timing/etc/cmds-$n.tab
+    cmds_file=${SCRIPT_DIR}/../etc/cmds-$n.tab
+    rm -f $cmds_file
 
-    if [ $n -eq 1 ] ; then
-        echo -e "megablast-$n-parts\tblastn -query $fasta_input -db $db -evalue 0.001 -num_alignments 1 -num_threads 32 -outfmt '6 qseqid qlen sacc staxid sscinames slen pident evalue bitscore length' -out megablast-32-$n.out" > $cmds_file
-    else
-        for m in $(seq $n); do
-            query=$fasta_file_prefix.part-$m.$fasta_file_extension
-            echo -e "megablast-$n-parts-p$m\tblastn -query $query -db $db -evalue 0.001 -num_alignments 1 -num_threads $n -outfmt '6 qseqid qlen sacc staxid sscinames slen pident evalue bitscore length' -out megablast-$n-$m.out" >> $cmds_file;
-        done
-    fi
-    
+    for m in $(seq $n); do
+        query=$fasta_file_prefix.part-$m.$fasta_file_extension
+        if [ $n -eq 1 ] ; then
+            query=$fasta_input
+        fi
+        echo -e "megablast-$n-parts-p$m\tblastn -query $query -db $db -evalue 0.001 -num_alignments 1 -num_threads ${parts2threads[$n]} -outfmt '6 qseqid qlen sacc staxid sscinames slen pident evalue bitscore length' -out megablast-$n-parts-p$m.out" >> $cmds_file;
+    done
+done    
+
+### CMD_DIR=/net/snowman/vol/export2/camacho/work/aws/timing/data
+### INPUT_FILES="blast_cmd.1336.txt blast_cmd.15795.txt blast_cmd.139340.txt"
+### JARFILE=/net/snowman/vol/export2/camacho/workspace/blastonspark/target/blastOnSpark-1.0.jar
+### CLASS=gov.ncbi.blast.app.BlastOnSparkDaemon
+### #NUM_CORES="2 4 8 12"
+### #NUM_CORES="2 4 8 16 32 64 128"
+### NUM_CORES="128 64 32 16 8 4 2 "
+### # Yarn cluster at NCBI cannot take more than this
+### EXECUTOR_RAM=7808M
+### #EXECUTOR_RAM=2G
+### SLICES=10
 
 ## rm -f $CMDS_FILE
 ## for f in ${INPUT_FILES}; do
