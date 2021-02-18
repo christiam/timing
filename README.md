@@ -25,8 +25,10 @@ The framework has 2 modes of operation: *consecutive tests* and *concurrent test
 * Overall system information is recorded: percentage of CPU and memory used.
 
 # Installation
-1. Clone this repo: `git clone https://github.com/christiam/timing.git`
-2. Install dependencies: `cd timing && cpanm --installdeps .`
+1. Clone this repo: `git clone https://github.com/christiam/timing.git && cd timing`
+2. Install dependencies: 
+   1. If you have root permissions: `sudo cpanm --installdeps .`
+   1. Without root permissions: `cpanm --installdeps . ; export PERL5LIB=$HOME/perl5/lib/perl5`
 
 # Instructions
 1. Create a *commands file* (or edit the `bin/setup-tests.sh` script to help you create it/them).
@@ -46,9 +48,12 @@ The framework has 2 modes of operation: *consecutive tests* and *concurrent test
 * SQLite3
 * See `cpanfile`. You will need `gcc` to run `cpanm DBD::SQLite`
 
+**Note**: This framework has only been tested in Linux.
+
 ## Known issues
 * You cannot use multiple commands in a single entry (e.g.: cmd1 && cmd2)
 
 ## Future work
 * Implement collection of overall system information collection
 * Refactor/dockerize
+* Optimization: normalize system info table
