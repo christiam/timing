@@ -37,6 +37,13 @@ all: ${DBNAME}
 run_parallel: ${DBNAME}
 	bin/driver.pl -v -v -v -v -s -parallel -cmds ${CMDS_FILE}
 
+eb785:
+	bin/driver.pl -v -v -v -v -s -parallel -cmds etc/cmds-16.tab
+	bin/driver.pl -v -v -v -v -s -parallel -cmds etc/cmds-8.tab
+	bin/driver.pl -v -v -v -v -s -parallel -cmds etc/cmds-4.tab
+	bin/driver.pl -v -v -v -v -s -parallel -cmds etc/cmds-2.tab
+	bin/driver.pl -v -v -v -v -s -parallel -cmds etc/cmds-1.tab
+
 $(DBNAME):
 	make -C ${DATADIR} `basename $@`
 
