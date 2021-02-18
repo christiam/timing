@@ -1,5 +1,7 @@
 *.db
 *.out
+*.gz
+*.fna
 *.fsa
 *.log
 *.png
