@@ -39,12 +39,11 @@ run_parallel: ${DBNAME}
 
 # target to run tests in EB-785, for didactical purposes
 eb785: ${DBNAME}
-	bin/driver.pl -v -v -v -v -s -parallel -cmds etc/cmds-32.tab
-	bin/driver.pl -v -v -v -v -s -parallel -cmds etc/cmds-16.tab
-	bin/driver.pl -v -v -v -v -s -parallel -cmds etc/cmds-8.tab
-	bin/driver.pl -v -v -v -v -s -parallel -cmds etc/cmds-4.tab
-	bin/driver.pl -v -v -v -v -s -parallel -cmds etc/cmds-2.tab
-	bin/driver.pl -v -v -v -v -s -parallel -cmds etc/cmds-1.tab
+	for n in 1 2 4 8 16 32; do \
+		make -C ${DATADIR} timings-$$n.db; \
+		bin/driver.pl -v -v -v -s -parallel -db ${DATADIR}/timings-$$n.db -cmds etc/cmds-$$n.tab; \
+		bin/reports.pl -db ${DATADIR}/timings-$$n.db -label megablast-$$n ; \
+	done
 
 $(DBNAME):
 	make -C ${DATADIR} `basename $@`
