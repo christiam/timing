@@ -39,6 +39,7 @@ run_parallel: ${DBNAME}
 
 # target to run tests in EB-785, for didactical purposes
 eb785: ${DBNAME}
+	bin/driver.pl -v -v -v -v -s -parallel -cmds etc/cmds-32.tab
 	bin/driver.pl -v -v -v -v -s -parallel -cmds etc/cmds-16.tab
 	bin/driver.pl -v -v -v -v -s -parallel -cmds etc/cmds-8.tab
 	bin/driver.pl -v -v -v -v -s -parallel -cmds etc/cmds-4.tab
