@@ -2,21 +2,27 @@
 
 This is a generic runtime timing framework.
 
-It has 2 modes of operation: consecutive tests and concurrent tests.
+The commands to be timed are specified in a *commands file*, which is just a
+plain text file with 2 columns separated by a single `\t` character. The
+default is `etc/cmds.tab` and it can be overriden by using the `CMDS_FILE`
+environment variable.
 
-<dl>
-<dt>Consecutive tests</dt>
-<dd>Runs tests specified in commands file sequentially.</dd>
-<dd>Each test can be executed multiple times, this is controlled by the
-`NUM_REPEATS` `Makefile` variable (default value=1).</dd>
-<dt>Concurrent tests</dt>
-<dd>Runs all the tests in the commands file in parallel.</dd>
-<dd>`NUM_REPEATS` is ignored in this mode.</dd>
-</dl>
+The framework has 2 modes of operation: *consecutive tests* and *concurrent tests*.
 
-By providing commands in the `etc/cmds.tab` file and setting the number of
+### Consecutive tests
+
+* Runs tests specified in commands file sequentially.
+* Each test can be executed multiple times, this is controlled by the
+`NUM_REPEATS` `Makefile` variable (default value=1).
+
+By providing commands in the commands file `etc/cmds.tab` file and setting the number of
 repetitions on the `Makefile` (default value of 1 provided), one can record the
 runtime (wall clock, system and user time as well as timestamp) of test cases.
+
+### Concurrent tests
+
+* Runs all the tests in the commands file in parallel.
+* `NUM_REPEATS` is ignored in this mode.
 
 # Instructions
 1. Edit the `bin/setup-tests.sh` script to easily overwrite the file containing
