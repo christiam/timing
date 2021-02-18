@@ -4,12 +4,15 @@ This is a generic runtime timing framework.
 
 It has 2 modes of operation: consecutive tests and concurrent tests.
 
-Consecutive tests
-: This is the definition of the first term.
-
-Concurrent tests
-: This is one definition of the second term.
-: This is another definition of the second term.
+<dl>
+<dt>Consecutive tests</dt>
+<dd>Runs tests specified in commands file sequentially.</dd>
+<dd>Each test can be executed multiple times, this is controlled by the
+`NUM_REPEATS` `Makefile` variable (default value=1).</dd>
+<dt>Concurrent tests</dt>
+<dd>Runs all the tests in the commands file in parallel.</dd>
+<dd>`NUM_REPEATS` is ignored in this mode.</dd>
+</dl>
 
 By providing commands in the `etc/cmds.tab` file and setting the number of
 repetitions on the `Makefile` (default value of 1 provided), one can record the
