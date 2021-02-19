@@ -67,8 +67,8 @@ sub main
 {
     $|++;
 
-    my @lines = grep { !/^#|^$/ } read_file($cmds);
-    my $num_parallel_jobs = scalar(@lines);
+    my @commands = grep { !/^#|^$/ } read_file($cmds);
+    my $num_parallel_jobs = scalar(@commands);
     my $num_procs = &get_num_procs;
     if ($num_parallel_jobs > $num_procs) {
         LOGDIE("The number of commands ($num_parallel_jobs) exceeds the number of available processors ($num_procs)");
@@ -94,6 +94,7 @@ sub main
     my %config;
     Config::Simple->import_from($cfg, \%config) if -f $cfg;
     DEBUG("Read config file $cfg") if -f $cfg;
+    &configure_setting_environment(\%config, "all");
 
     if (defined $pm) {
         $pm->run_on_finish( sub {
@@ -110,7 +111,7 @@ sub main
     }
 
     DATA_LOOP:
-    foreach (@lines) {
+    foreach (@commands) {
         chomp;
         my $pid = 0;
         if (defined $pm) {
@@ -146,6 +147,7 @@ sub main
                 catch { WARN("all.setup command FAILED"); }
                 finally { $setup_exit_code = $IPC::System::Simple::EXITVAL; };
             }
+            &configure_setting_environment(\%config, $label);
             my $tmp_fh = File::Temp->new();
             my $cmd = "/usr/bin/time -o $tmp_fh $cmd2time";
             if ($skip_failures) {
@@ -185,6 +187,7 @@ sub main
                 catch { WARN("all.teardown command FAILED"); }
                 finally { $teardown_exit_code = $IPC::System::Simple::EXITVAL; };
             }
+            &configure_unsetting_environment(\%config, $label);
             push @data, ($exit_code, $host, $setup_exit_code, $teardown_exit_code);
             &save2db($sth_runtime, $label4run, @data) unless $dry_run;
             if ($rm_core_files) {
@@ -196,6 +199,48 @@ sub main
     }
     $pm->wait_all_children if defined $pm;
     $dbh->disconnect();
+}
+
+sub _configure_setting_environment
+{
+    my %config = %{$_[0]};
+    shift;
+    my $label = shift;
+    my $mode = shift;
+    if (exists $config{"$label.env"}) {
+        foreach (split(/;/, $config{"$label.env"})) {
+            my @F = split(/=/);
+            if (scalar(@F) != 2) {
+                ERROR("Invalid environment setting in '$_'");
+                next;
+            }
+            if ($mode eq 'set') {
+                $ENV{$F[0]} = $F[1];
+                TRACE("Setting environment variable for $label: $F[0]=$F[1]");
+            } elsif ($mode eq 'unset') {
+                delete $ENV{$F[0]};
+                TRACE("Unsetting environment variable for $label $F[0]");
+            } else {
+                ERROR("Invalid mode $mode when handling environment variable for $label $@");
+            }
+        }
+    }
+}
+
+# Set environment variables for the commands to execute
+sub configure_setting_environment
+{
+    my $config = shift;
+    my $label = shift;
+    _configure_setting_environment($config, $label, 'set');
+}
+
+# Unset environment variables for the commands to execute
+sub configure_unsetting_environment
+{
+    my $config = shift;
+    my $label = shift;
+    _configure_setting_environment($config, $label, 'unset');
 }
 
 sub collect_mem_usage
@@ -235,7 +280,6 @@ sub collect_cpu_usage
     close($top_output);
     return $retval;
 }
-
 
 # Attempt multiple retries to save data in SQLite, to support multiple
 # processes
@@ -334,6 +378,10 @@ Database file name (default: data/timings.db)
 
 Tab delimited file containing captions and commands to run (default:
 etc/cmds.tab)
+
+=item B<-cfg>
+
+Ini-style configuration file (default: etc/timing.ini)
 
 =item B<-repeats>
 

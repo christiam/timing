@@ -87,12 +87,12 @@ test_sql:
 	make -C ddl test
 
 .PHONY: test
-test: check_perl_syntax test_sql test_consecutive test_parallel
+test: check_perl_syntax test_sql test_consecutive test_parallel test_config
 
 TEST_CMD_FILE=test-cmd.tab
 ${TEST_CMD_FILE}:
-	echo -e "foo\tdate" > $@
-	echo -e "bar\tjunk" >> $@
+	printf "foo\tdate\n" > $@
+	printf "bar\tjunk\n" >> $@
 
 .PHONY: test_consecutive
 test_consecutive: ${TEST_CMD_FILE}
@@ -104,8 +104,8 @@ test_consecutive: ${TEST_CMD_FILE}
 
 TEST_CMD_FILE_PARALLEL=test-cmd-parallel.tab
 ${TEST_CMD_FILE_PARALLEL}:
-	echo -e "job1\tsleep 5" > $@
-	echo -e "job2\tsleep 2" >> $@
+	printf "job1\tsleep 5\n" > $@
+	printf "job2\tsleep 2\n" >> $@
 
 .PHONY: test_parallel
 test_parallel: ${TEST_CMD_FILE_PARALLEL}
@@ -114,6 +114,21 @@ test_parallel: ${TEST_CMD_FILE_PARALLEL}
 	sqlite3 -header -column ${DATADIR}/testdb.db < ddl/select.sql
 	bin/reports.pl -label all -db ${DATADIR}/testdb.db
 	${RM} $< ${DATADIR}/testdb.db
+
+TEST_CFG_FILE=test-config.ini
+${TEST_CFG_FILE}:
+	printf "[all]\nsetup=true\nteardown=true\nenv=BLASTDB=/blast/blastdb;ELB_CLUSTER_NAME=bar\n" > $@
+	printf "[foo]\nsetup=date\nteardown=date\nenv=BLASTDB=/dev/null;BATCH_SIZE=100000\n" >> $@
+	printf "[bar]\nenv=TEST_NAME=bar\n" >> $@
+	make ${TEST_CMD_FILE}
+
+.PHONY: test_config
+test_config: ${TEST_CFG_FILE}
+	[ -f ${DATADIR}/testdb.db ] || make -C ${DATADIR} testdb.db
+	bin/driver.pl -v -v -v -v -v -s -repeats 2 -cmds ${TEST_CMD_FILE} -cfg $< -db ${DATADIR}/testdb.db
+	sqlite3 -header -column ${DATADIR}/testdb.db < ddl/select.sql
+	bin/reports.pl -label all -db ${DATADIR}/testdb.db
+	${RM} $< ${TEST_CMD_FILE}
 
 .PHONY: simple
 simple: ${GRAPH_SIMPLE}
