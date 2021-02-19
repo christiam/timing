@@ -42,6 +42,15 @@ The timing framework has 2 modes of operation: *consecutive tests* and *concurre
 * `bin/multi-series-extractor.pl`: intended for identical test cases run in series (e.g.: with N-M threads) that should be compared across the board.
 * `bin/data2gnuplot.pl`: Plots multiple data sets into a single data file, intended to produce histograms
 
+## Additional configuration
+
+In some cases it is necessary to run a command before (setup) and/or after
+(teardown) the command to time. To support this use case, `bin/driver.pl` can be configured with an
+[ini-style configuration file](https://en.wikipedia.org/wiki/INI_file) -
+please see [etc/timing.ini](etc/timing.ini) for an example.
+Please note that these setup/teardown commands are not timed, but their exit status is
+recorded.
+
 ## Dependencies
 * `/usr/bin/time`
 * `/usr/bin/vmstat`
