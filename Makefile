@@ -103,11 +103,8 @@ test_consecutive: ${TEST_CMD_FILE}
 
 TEST_CMD_FILE_PARALLEL=test-cmd-parallel.tab
 ${TEST_CMD_FILE_PARALLEL}:
-	echo -e "job1\tdate" > $@
-	echo -e "job2\tdate" >> $@
-	echo -e "job3\tsleep 3" >> $@
-	echo -e "job4\tsleep 2" >> $@
-	echo -e "job5\tdate" >> $@
+	echo -e "job1\tsleep 5" > $@
+	echo -e "job2\tsleep 2" >> $@
 
 .PHONY: test_parallel
 test_parallel: ${TEST_CMD_FILE_PARALLEL}
