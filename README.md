@@ -46,10 +46,14 @@ The timing framework has 2 modes of operation: *consecutive tests* and *concurre
 
 In some cases it is necessary to run a command before (setup) and/or after
 (teardown) the command to time. To support this use case, `bin/driver.pl` can be configured with an
-[ini-style configuration file](https://en.wikipedia.org/wiki/INI_file) -
-please see [etc/timing.ini](etc/timing.ini) for an example.
+[ini-style configuration file](https://en.wikipedia.org/wiki/INI_file).
 Please note that these setup/teardown commands are not timed, but their exit status is
 recorded.
+
+Environment variable settings are supported via the configuration file's `env`
+keyword. Its value must be a ';' separated set of `KEY=VALUE` pairs.
+
+please see [etc/timing.ini](etc/timing.ini) for an example configuration file.
 
 ## Dependencies
 * `/usr/bin/time`
