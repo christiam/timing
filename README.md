@@ -52,7 +52,3 @@ The framework has 2 modes of operation: *consecutive tests* and *concurrent test
 
 ## Known issues
 * You cannot use multiple commands in a single entry (e.g.: cmd1 && cmd2)
-
-## Future work
-* Refactor/dockerize
-* Optimization: normalize system info table
