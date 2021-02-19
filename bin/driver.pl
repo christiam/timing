@@ -189,7 +189,7 @@ sub main
             }
             &configure_unsetting_environment(\%config, $label);
             push @data, ($exit_code, $host, $setup_exit_code, $teardown_exit_code);
-            save2db($sth_runtime, $label4run, @data) unless $dry_run;
+            &save2db($sth_runtime, $label4run, @data) unless $dry_run;
             if ($rm_core_files) {
                 no autodie; 
                 unlink glob("core.*");
