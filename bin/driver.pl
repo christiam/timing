@@ -125,8 +125,8 @@ sub main
             my ($setup_exit_code, $exit_code, $teardown_exit_code) = (0)x3;
             my $label4run = $label . "-" . ($run_number+1);
             $label4run = $label if ($num_repeats == 1);
-            if ($cmd2time =~ /{LABEL}/) {
-                $cmd2time =~ s/{LABEL}/$label4run/;
+            if ($F[1] =~ /{LABEL}/) {
+                $cmd2time = $F[1] =~ s/{LABEL}/$label4run/r;
             }
             if (exists $config{"$label.setup"}) {
                 try { run($config{"$label.setup"}); } 
