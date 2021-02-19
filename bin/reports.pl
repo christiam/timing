@@ -69,14 +69,32 @@ sub main
             print $_, $data{$_}->get_data();
         } else {
             print $_, 
-                "median", $data{$_}->median(), 
-                "mean", $data{$_}->mean(), 
-                "min", $data{$_}->min(), 
-                "max", $data{$_}->max(),
-                "stddev", $data{$_}->standard_deviation(),
-                "sum", $data{$_}->sum(),
+                "median", sprintf("%.2f", $data{$_}->median()),
+                "mean", sprintf("%.2f", $data{$_}->mean()),
+                "min", sprintf("%.2f", $data{$_}->min()),
+                "max", sprintf("%.2f", $ data{$_}->max()),
+                "stddev", sprintf("%.2f", $data{$_}->standard_deviation()),
+                "sum", sprintf("%.2f", $data{$_}->sum()),
                 "count", $data{$_}->count();
         }
+    }
+
+    # Display stats for system info
+    foreach my $metric (qw(pmem_usage pcpu_usage)) {
+        my $sql = "select $metric from system_info";
+        TRACE($sql);
+        my @result = map { $_ = $_->[0] } @{ $dbh->selectall_arrayref($sql) };
+        next if (@result == 0);
+        my $stat = Statistics::Descriptive::Full->new();
+        $stat->add_data(@result);
+        $data{$metric} = $stat;
+        print $metric, 
+            "median", sprintf("%.2f", $data{$metric}->median()),
+            "mean", sprintf("%.2f", $data{$metric}->mean()),
+            "min", sprintf("%.2f", $data{$metric}->min()),
+            "max", sprintf("%.2f", $data{$metric}->max()),
+            "stddev", sprintf("%.2f", $data{$metric}->standard_deviation()),
+            "count", $data{$metric}->count();
     }
 }
 
