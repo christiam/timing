@@ -13,7 +13,9 @@ use DBI;
 use autodie;
 use Parallel::ForkManager;
 
-use constant SQL => "INSERT INTO runtime(label,elapsed_time,user_time,system_time,pcpu,mrss,arss,avg_mem_usage,exit_status,hostname,setup_exit_status,teardown_exit_status) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)";
+use constant SQL_RUNTIME => "INSERT INTO runtime(label,elapsed_time,user_time,system_time,pcpu,mrss,arss,avg_mem_usage,exit_status,hostname,setup_exit_status,teardown_exit_status) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)";
+use constant SQL_SYS_INFO => "INSERT INTO system_info(hostname, pmem_usage, pcpu_usage) VALUES(?,?,?)";
+use constant INVALID_SYSINFO => -1.0;
 
 my $dbname = "data/timings.db";
 my $cmds = "etc/cmds.tab";
@@ -24,6 +26,7 @@ my $dry_run = 0;
 my $verbose = 0;
 my $skip_failures = 0;
 my $rm_core_files = 0;
+my $sampling_interval = 1;
 my $logfile = "";
 my $help_requested = 0;
 GetOptions("db=s"           => \$dbname,
@@ -74,13 +77,6 @@ sub main
         ? Parallel::ForkManager->new($num_parallel_jobs)
         : undef;
 
-    if (defined $pm) {
-        $pm->run_on_finish( sub {
-            my ($pid, $exit_code, $ident) = @_;
-            DEBUG("Child PID $pid ($ident) finished with exit code $exit_code");
-        });
-    }
-
     # From man page
     # %e: elapsed time in seconds
     # %U: CPU-seconds in user space
@@ -92,11 +88,26 @@ sub main
     $ENV{TIME} = "%e\t%U\t%S\t%P\t%M\t%t\t%K";
 
     my $dbh = connect_to_sqlite($dbname);
-    my $sth = $dbh->prepare(SQL);
+    my $sth_runtime = $dbh->prepare(SQL_RUNTIME);
+    my $sth_sysinfo = $dbh->prepare(SQL_SYS_INFO);
     my $host = Net::Domain::hostfqdn();
     my %config;
     Config::Simple->import_from($cfg, \%config) if -f $cfg;
     DEBUG("Read config file $cfg") if -f $cfg;
+
+    if (defined $pm) {
+        $pm->run_on_finish( sub {
+            my ($pid, $exit_code, $ident) = @_;
+            DEBUG("Child PID $pid ($ident) finished with exit code $exit_code");
+        });
+        $pm->run_on_wait( sub {
+            my $pmem = &collect_mem_usage();
+            my $pcpu = &collect_cpu_usage();
+            return if ($pmem == INVALID_SYSINFO or $pcpu == INVALID_SYSINFO);
+            TRACE("system_info: mem: $pmem%, CPU=$pcpu%");
+            &save2db($sth_sysinfo, $host, ($pmem, $pcpu)) unless $dry_run;
+        }, $sampling_interval);
+    }
 
     DATA_LOOP:
     foreach (@lines) {
@@ -105,91 +116,126 @@ sub main
         if (defined $pm) {
             $pid = $pm->start($_) and next DATA_LOOP;
         }
-        if ($pid == 0) {
-            my @F = split(/\t/);
-            LOGDIE("Invalid input: tab separated label and command expected") if (@F != 2);
-            my $label = $F[0];
-            my $cmd2time = $F[1];
+        my @F = split(/\t/);
+        LOGDIE("Invalid input: tab separated label and command expected") if (@F != 2);
+        my $label = $F[0];
+        my $cmd2time = $F[1];
+    # HACK FOR SPARK AND OUTPUT IN HDFS
+    my $output;
+    if ($cmd2time =~ /spark-submit.*\.txt\s+(.*)\s+DUMMY_RID$/) {
+        $output = $1;
+    }
+    ###################################### 
+        for (my $run_number = 0; $run_number < $num_repeats; $run_number++) {
+            my ($setup_exit_code, $exit_code, $teardown_exit_code) = (0)x3;
+            my $label4run = $label . "-" . ($run_number+1);
+            $label4run = $label if ($num_repeats == 1);
         # HACK FOR SPARK AND OUTPUT IN HDFS
-        my $output;
-        if ($cmd2time =~ /spark-submit.*\.txt\s+(.*)\s+DUMMY_RID$/) {
-            $output = $1;
+        if (defined $output and $num_repeats != 1) {
+            $cmd2time = $F[1];
+            my $output4run = $output . "-" . ($run_number+1);
+            $cmd2time =~ s/$output/$output4run/;
         }
-        ###################################### 
-            for (my $run_number = 0; $run_number < $num_repeats; $run_number++) {
-                my ($setup_exit_code, $exit_code, $teardown_exit_code) = (0)x3;
-                my $label4run = $label . "-" . ($run_number+1);
-                $label4run = $label if ($num_repeats == 1);
-            # HACK FOR SPARK AND OUTPUT IN HDFS
-            if (defined $output and $num_repeats != 1) {
-                $cmd2time = $F[1];
-                my $output4run = $output . "-" . ($run_number+1);
-                $cmd2time =~ s/$output/$output4run/;
+        #####################################
+            if (exists $config{"$label.setup"}) {
+                try { run($config{"$label.setup"}); } 
+                catch { WARN("$label.setup command FAILED"); }
+                finally { $setup_exit_code = $IPC::System::Simple::EXITVAL; };
+            } elsif (exists $config{"all.setup"}) {
+                try { run($config{"all.setup"}); } 
+                catch { WARN("all.setup command FAILED"); }
+                finally { $setup_exit_code = $IPC::System::Simple::EXITVAL; };
             }
-            #####################################
-                if (exists $config{"$label.setup"}) {
-                    try { run($config{"$label.setup"}); } 
-                    catch { WARN("$label.setup command FAILED"); }
-                    finally { $setup_exit_code = $IPC::System::Simple::EXITVAL; };
-                } elsif (exists $config{"all.setup"}) {
-                    try { run($config{"all.setup"}); } 
-                    catch { WARN("all.setup command FAILED"); }
-                    finally { $setup_exit_code = $IPC::System::Simple::EXITVAL; };
-                }
-                my $tmp_fh = File::Temp->new();
-                my $cmd = "/usr/bin/time -o $tmp_fh $cmd2time";
-                if ($skip_failures) {
-                    try { run($cmd); } catch { $run_number = $num_repeats; }
-                    finally { $exit_code = $IPC::System::Simple::EXITVAL; };
-                } else  {
-                    run($cmd); 
-                    $exit_code = $IPC::System::Simple::EXITVAL;
-                }
-                chomp(my @timings = read_file($tmp_fh->filename));
-                my $line_w_times = "";
-                my $line_w_errors = ""; # on AWS EC2 stderr goes into the temporary file, rescue it
-                foreach (@timings) {
-                    if (split(/\t/) == 7) {
-                        $line_w_times = $_;
-                    } else {
-                        $line_w_errors = $_;
-                    }
-                }
-                if ($exit_code != 0) {
-                    if (length $line_w_errors) {
-                        ERROR("Command failed: '$line_w_errors'");
-                    } else {
-                        ERROR("Command failed");
-                    }
-                }
-                DEBUG("Read " . scalar(@timings) . " lines of time output, parsing '$line_w_times'");
-                my @data = (0)x7; # Ellapsed, user, system, PCPU
-                $line_w_times =~ s/%//g;
-                @data = split(/\t/, $line_w_times) if (length $line_w_times);
-                if (exists $config{"$label.teardown"}) {
-                    try { run($config{"$label.teardown"}); } 
-                    catch { WARN("$label.teardown command FAILED"); }
-                    finally { $teardown_exit_code = $IPC::System::Simple::EXITVAL; };
-                } elsif (exists $config{"all.teardown"}) {
-                    try { run($config{"all.teardown"}); } 
-                    catch { WARN("all.teardown command FAILED"); }
-                    finally { $teardown_exit_code = $IPC::System::Simple::EXITVAL; };
-                }
-                push @data, ($exit_code, $host, $setup_exit_code, $teardown_exit_code);
-                save2db($sth, $label4run, @data) unless $dry_run;
-                if ($rm_core_files) {
-                    no autodie; 
-                    unlink glob("core.*");
-                }
-                $pm->finish($exit_code) if defined $pm;
+            my $tmp_fh = File::Temp->new();
+            my $cmd = "/usr/bin/time -o $tmp_fh $cmd2time";
+            if ($skip_failures) {
+                try { run($cmd); } catch { $run_number = $num_repeats; }
+                finally { $exit_code = $IPC::System::Simple::EXITVAL; };
+            } else  {
+                run($cmd); 
+                $exit_code = $IPC::System::Simple::EXITVAL;
             }
-        } else {
-            DEBUG("Started PID $pid for $_");
+            chomp(my @timings = read_file($tmp_fh->filename));
+            my $line_w_times = "";
+            my $line_w_errors = ""; # on AWS EC2 stderr goes into the temporary file, rescue it
+            foreach (@timings) {
+                if (split(/\t/) == 7) {
+                    $line_w_times = $_;
+                } else {
+                    $line_w_errors = $_;
+                }
+            }
+            if ($exit_code != 0) {
+                if (length $line_w_errors) {
+                    ERROR("Command failed: '$line_w_errors'");
+                } else {
+                    ERROR("Command failed");
+                }
+            }
+            DEBUG("Read " . scalar(@timings) . " lines of time output, parsing '$line_w_times'");
+            my @data = (0)x7; # Ellapsed, user, system, PCPU
+            $line_w_times =~ s/%//g;
+            @data = split(/\t/, $line_w_times) if (length $line_w_times);
+            if (exists $config{"$label.teardown"}) {
+                try { run($config{"$label.teardown"}); } 
+                catch { WARN("$label.teardown command FAILED"); }
+                finally { $teardown_exit_code = $IPC::System::Simple::EXITVAL; };
+            } elsif (exists $config{"all.teardown"}) {
+                try { run($config{"all.teardown"}); } 
+                catch { WARN("all.teardown command FAILED"); }
+                finally { $teardown_exit_code = $IPC::System::Simple::EXITVAL; };
+            }
+            push @data, ($exit_code, $host, $setup_exit_code, $teardown_exit_code);
+            &save2db($sth_runtime, $label4run, @data) unless $dry_run;
+            if ($rm_core_files) {
+                no autodie; 
+                unlink glob("core.*");
+            }
+            $pm->finish($exit_code) if defined $pm;
         }
     }
     $pm->wait_all_children if defined $pm;
     $dbh->disconnect();
 }
+
+sub collect_mem_usage
+{
+    open(my $vmstat_output, '-|', 'vmstat -s');
+    my $total_memory = 0;
+    my $used_memory = 0;
+    while (<$vmstat_output>) {
+        chomp;
+        if (/(\d+) K total memory/) {
+            $total_memory = $1;
+        }
+        if (/(\d+) K used memory/) {
+            $used_memory = $1;
+        }
+    }
+    close($vmstat_output);
+    my $retval = INVALID_SYSINFO;
+    $retval = ($used_memory*100.)/($total_memory*1.) if ($total_memory > 0);
+    return $retval;
+}
+
+sub collect_cpu_usage
+{
+    open(my $top_output, '-|', 'top -bn1');
+    my $retval = INVALID_SYSINFO;
+    while (<$top_output>) {
+        if (/^%/) {
+            chomp;
+            my @F = split;
+            next unless (scalar(@F) > 8);
+            next unless ($F[7] =~ /\d+.\d+/);
+            $retval = 100.0 - $F[7];
+            last;
+        }
+    }
+    close($top_output);
+    return $retval;
+}
+
 
 # Attempt multiple retries to save data in SQLite, to support multiple
 # processes
