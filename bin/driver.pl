@@ -15,6 +15,7 @@ use Parallel::ForkManager;
 
 use constant SQL_RUNTIME => "INSERT INTO runtime(label,elapsed_time,user_time,system_time,pcpu,mrss,arss,avg_mem_usage,exit_status,hostname,setup_exit_status,teardown_exit_status) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)";
 use constant SQL_SYS_INFO => "INSERT INTO system_info(hostname, pmem_usage, pcpu_usage) VALUES(?,?,?)";
+use constant INVALID_SYSINFO => -1.0;
 
 my $dbname = "data/timings.db";
 my $cmds = "etc/cmds.tab";
@@ -102,6 +103,7 @@ sub main
         $pm->run_on_wait( sub {
             my $pmem = &collect_mem_usage();
             my $pcpu = &collect_cpu_usage();
+            return if ($pmem == INVALID_SYSINFO or $pcpu == INVALID_SYSINFO);
             TRACE("system_info: mem: $pmem%, CPU=$pcpu%");
             &save2db($sth_sysinfo, $host, ($pmem, $pcpu)) unless $dry_run;
         }, $sampling_interval);
@@ -211,17 +213,20 @@ sub collect_mem_usage
         }
     }
     close($vmstat_output);
-    return ($used_memory*100.)/($total_memory*1.);
+    my $retval = INVALID_SYSINFO;
+    $retval = ($used_memory*100.)/($total_memory*1.) if ($total_memory > 0);
+    return $retval;
 }
 
 sub collect_cpu_usage
 {
     open(my $top_output, '-|', 'top -n 1');
-    my $retval = 0.0;
+    my $retval = INVALID_SYSINFO;
     while (<$top_output>) {
         if (/^%/) {
             chomp;
             my @F = split;
+            next unless (scalar(@F) > 8);
             $retval = 100.0 - $F[7];
             last;
         }
