@@ -117,9 +117,10 @@ test_parallel: ${TEST_CMD_FILE_PARALLEL}
 
 TEST_CFG_FILE=test-config.ini
 ${TEST_CFG_FILE}:
-	echo -e "[all]\nsetup=true\nteardown=true\nenv=BLASTDB=/blast/blastdb;ELB_CLUSTER_NAME=bar" > $@
-	echo -e "[foo]\nsetup=date\nteardown=date\nenv=BLASTDB=/dev/null;BATCH_SIZE=100000" >> $@
-	echo -e "[bar]\nenv=TEST_NAME=bar" >> $@
+	echo -e "[all]\nsetup=true\nteardown=true\nenv=BLASTDB=/blast/blastdb;ELB_CLUSTER_NAME=bar\n" > $@
+	echo -e "[foo]\nsetup=date\nteardown=date\nenv=BLASTDB=/dev/null;BATCH_SIZE=100000\n" >> $@
+	echo -e "[bar]\nenv=TEST_NAME=bar\n" >> $@
+	cat -n $@
 	make ${TEST_CMD_FILE}
 
 .PHONY: test_config
