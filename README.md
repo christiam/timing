@@ -43,11 +43,11 @@ The framework has 2 modes of operation: *consecutive tests* and *concurrent test
 
 ## Additional configuration
 
-In some cases it is necessary to run a command before and/or after the command
-to time. To support this use case, `bin/driver.pl` can be configured with an
-[ini-style configuration file](https://en.wikipedia.org/wiki/INI_file). For an
-example of such a file, please see the sample [etc/timing.ini](etc/timing.ini)
-file. Please note that these commands are not timed, but their exit stats is
+In some cases it is necessary to run a command before (setup) and/or after
+(teardown) the command to time. To support this use case, `bin/driver.pl` can be configured with an
+[ini-style configuration file](https://en.wikipedia.org/wiki/INI_file) -
+please see [etc/timing.ini](etc/timing.ini) for an example.
+Please note that these setup/teardown commands are not timed, but their exit status is
 recorded.
 
 ## Dependencies
