@@ -77,20 +77,29 @@ show: ${DBNAME}
 reset:
 	make -C ${DATADIR} clean
 
+.PHONY: check_perl_syntax
+check_perl_syntax:
+	for f in bin/*.pl; do perl -c $$f ; done
+
+.PHONY: test_sql
+test_sql:
+	make -C ddl test
+
+.PHONY: test
+test: check_perl_syntax test_sql test_consecutive test_parallel
+
 TEST_CMD_FILE=test-cmd.tab
 ${TEST_CMD_FILE}:
 	echo -e "foo\tdate" > $@
 	echo -e "bar\tjunk" >> $@
-	make -C ${DATADIR} testdb.db
 
-.PHONY: test
-test: ${TEST_CMD_FILE} reset
-	make -C ddl $@
-	for f in bin/*.pl; do perl -c $$f ; done
+.PHONY: test_consecutive
+test_consecutive: ${TEST_CMD_FILE}
+	[ -f ${DATADIR}/testdb.db ] || make -C ${DATADIR} testdb.db
 	bin/driver.pl -v -v -v -v -v -s -repeats 3 -cmds ${TEST_CMD_FILE} -db ${DATADIR}/testdb.db
 	sqlite3 -header -column ${DATADIR}/testdb.db < ddl/select.sql
 	bin/reports.pl -label all -db ${DATADIR}/testdb.db
-	${RM} $<
+	${RM} $< ${DATADIR}/testdb.db
 
 TEST_CMD_FILE_PARALLEL=test-cmd-parallel.tab
 ${TEST_CMD_FILE_PARALLEL}:
@@ -101,11 +110,12 @@ ${TEST_CMD_FILE_PARALLEL}:
 	echo -e "job5\tdate" >> $@
 
 .PHONY: test_parallel
-test_parallel: ${TEST_CMD_FILE_PARALLEL} reset
+test_parallel: ${TEST_CMD_FILE_PARALLEL}
+	[ -f ${DATADIR}/testdb.db ] || make -C ${DATADIR} testdb.db
 	bin/driver.pl -v -v -v -v -v -s -parallel -cmds $< -db ${DATADIR}/testdb.db
 	sqlite3 -header -column ${DATADIR}/testdb.db < ddl/select.sql
 	bin/reports.pl -label all -db ${DATADIR}/testdb.db
-	${RM} $<
+	${RM} $< ${DATADIR}/testdb.db
 
 .PHONY: simple
 simple: ${GRAPH_SIMPLE}
