@@ -91,7 +91,7 @@ test: check_perl_syntax test_sql test_consecutive test_parallel test_config
 
 TEST_CMD_FILE=test-cmd.tab
 ${TEST_CMD_FILE}:
-	printf "foo\tdate\n" > $@
+	printf "foo\tdate >{LABEL}.out\n" > $@
 	printf "bar\tjunk\n" >> $@
 
 .PHONY: test_consecutive
