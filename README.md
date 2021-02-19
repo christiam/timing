@@ -1,8 +1,8 @@
 ![CI](https://github.com/christiam/timing/workflows/CI/badge.svg)
 
-This is a generic runtime timing framework. It records runtime information
-(elapsed time, user and system time), memory usage and percentage CPU usage
-(among other relevant data) in a locally stored relational database.
+This is a generic runtime timing and reporting framework. It records runtime
+information (elapsed time, user and system time), memory usage and percentage
+CPU usage (among other relevant data) in a locally stored relational database.
 
 The commands to be timed are specified in a *commands file*, which is a
 text file with 2 columns separated by a single `\t` character. It can be
@@ -10,7 +10,7 @@ specified via the `CMDS_FILE` environment variable (default
 value=`etc/cmds.tab`). The first column in this file is a label to _uniquely_
 identify the command to run and the second is the actual command to run.
 
-The framework has 2 modes of operation: *consecutive tests* and *concurrent tests*.
+The timing framework has 2 modes of operation: *consecutive tests* and *concurrent tests*.
 
 ### Consecutive tests
 
@@ -22,7 +22,8 @@ The framework has 2 modes of operation: *consecutive tests* and *concurrent test
 
 * Runs all the commands in the *commands file* in parallel.
 * `NUM_REPEATS` is ignored in this mode.
-* Overall system information is recorded: percentage of CPU and memory used.
+* System information (percentage of CPU and memory used) is recorded while
+  commands are executing. 
 
 # Installation
 1. Clone this repo: `git clone https://github.com/christiam/timing.git && cd timing`
@@ -35,11 +36,20 @@ The framework has 2 modes of operation: *consecutive tests* and *concurrent test
 2. Run `make help` for a description of the targets
 
 ## Tools
-* `bin/driver.pl`: Main driver script to execute commands in *commands file*.
-* `bin/reports.pl`: Extracts data from database and prints various statistical measures
+* `bin/driver.pl`: Main driver script to execute commands in *commands file*. Run with `--help` option for additional documentation.
+* `bin/reports.pl`: Extracts data from database and prints various statistical measures. Run with `--help` option for additional documentation.
 * `bin/setup-tests.sh`: facilitates creating *commands file*(s).
 * `bin/multi-series-extractor.pl`: intended for identical test cases run in series (e.g.: with N-M threads) that should be compared across the board.
 * `bin/data2gnuplot.pl`: Plots multiple data sets into a single data file, intended to produce histograms
+
+## Additional configuration
+
+In some cases it is necessary to run a command before (setup) and/or after
+(teardown) the command to time. To support this use case, `bin/driver.pl` can be configured with an
+[ini-style configuration file](https://en.wikipedia.org/wiki/INI_file) -
+please see [etc/timing.ini](etc/timing.ini) for an example.
+Please note that these setup/teardown commands are not timed, but their exit status is
+recorded.
 
 ## Dependencies
 * `/usr/bin/time`

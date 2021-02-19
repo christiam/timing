@@ -342,6 +342,10 @@ Ini-style configuration file (default: etc/timing.ini)
 
 Number of times to run each command (default: 1)
 
+=item B<-parallel>
+
+Run commands in parallel (default: false). Disables -repeats.
+
 =item B<-skip_failures>
 
 Skip command on after any failure (default: false)
