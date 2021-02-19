@@ -53,7 +53,7 @@ recorded.
 Environment variable settings are supported via the configuration file's `env`
 keyword. Its value must be a ';' separated set of `KEY=VALUE` pairs.
 
-please see [etc/timing.ini](etc/timing.ini) for an example configuration file.
+Please see [etc/timing.ini](etc/timing.ini) for an example configuration file.
 
 ## Dependencies
 * `/usr/bin/time`
