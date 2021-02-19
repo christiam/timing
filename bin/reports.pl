@@ -69,12 +69,12 @@ sub main
             print $_, $data{$_}->get_data();
         } else {
             print $_, 
-                "median", printf("%.2f", $data{$_}->median()),
-                "mean", printf("%.2f", $data{$_}->mean()),
-                "min", printf("%.2f", $data{$_}->min()),
-                "max", printf("%.2f", $ data{$_}->max()),
-                "stddev", printf("%.2f", $data{$_}->standard_deviation()),
-                "sum", printf("%.2f", $data{$_}->sum()),
+                "median", sprintf("%.2f", $data{$_}->median()),
+                "mean", sprintf("%.2f", $data{$_}->mean()),
+                "min", sprintf("%.2f", $data{$_}->min()),
+                "max", sprintf("%.2f", $ data{$_}->max()),
+                "stddev", sprintf("%.2f", $data{$_}->standard_deviation()),
+                "sum", sprintf("%.2f", $data{$_}->sum()),
                 "count", $data{$_}->count();
         }
     }
@@ -89,11 +89,11 @@ sub main
         $stat->add_data(@result);
         $data{$metric} = $stat;
         print $metric, 
-            "median", printf("%.2f", $data{$metric}->median()),
-            "mean", printf("%.2f", $data{$metric}->mean()),
-            "min", printf("%.2f", $data{$metric}->min()),
-            "max", printf("%.2f", $data{$metric}->max()),
-            "stddev", printf("%.2f", $data{$metric}->standard_deviation()),
+            "median", sprintf("%.2f", $data{$metric}->median()),
+            "mean", sprintf("%.2f", $data{$metric}->mean()),
+            "min", sprintf("%.2f", $data{$metric}->min()),
+            "max", sprintf("%.2f", $data{$metric}->max()),
+            "stddev", sprintf("%.2f", $data{$metric}->standard_deviation()),
             "count", $data{$metric}->count();
     }
 }
