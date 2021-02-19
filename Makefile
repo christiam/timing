@@ -87,7 +87,7 @@ test_sql:
 	make -C ddl test
 
 .PHONY: test
-test: check_perl_syntax test_sql test_consecutive test_parallel
+test: check_perl_syntax test_sql test_consecutive test_parallel test_config
 
 TEST_CMD_FILE=test-cmd.tab
 ${TEST_CMD_FILE}:
@@ -116,13 +116,15 @@ test_parallel: ${TEST_CMD_FILE_PARALLEL}
 	${RM} $< ${DATADIR}/testdb.db
 
 TEST_CFG_FILE=test-config.ini
-${TEST_CFG_FILE}: ${TEST_CMD_FILE}
+${TEST_CFG_FILE}:
 	echo -e "[all]\nsetup=true\nteardown=true\nenv=BLASTDB=/blast/blastdb;ELB_CLUSTER_NAME=bar" > $@
 	echo -e "[foo]\nsetup=date\nteardown=date\nenv=BLASTDB=/dev/null;BATCH_SIZE=100000" >> $@
 	echo -e "[bar]\nenv=TEST_NAME=bar" >> $@
+	make ${TEST_CMD_FILE}
 
 .PHONY: test_config
 test_config: ${TEST_CFG_FILE}
+	[ -f ${DATADIR}/testdb.db ] || make -C ${DATADIR} testdb.db
 	bin/driver.pl -v -v -v -v -v -s -repeats 2 -cmds ${TEST_CMD_FILE} -cfg $< -db ${DATADIR}/testdb.db
 	sqlite3 -header -column ${DATADIR}/testdb.db < ddl/select.sql
 	bin/reports.pl -label all -db ${DATADIR}/testdb.db
