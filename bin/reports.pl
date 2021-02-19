@@ -149,7 +149,7 @@ __END__
 
 =head1 NAME
 
-B<reports.pl> - Produce reports from timing database (for elapsed_time)
+B<reports.pl> - Produce reports from timing database for elapsed_time and system information (if available)
 
 =head1 SYNOPSIS
 
@@ -161,8 +161,9 @@ reports.pl [options] -label <test-case> [-label <test-case> ... ]
 
 =item B<-label>
 
-Label from the database to display report for. Can be the keyword 'all', which
-shows summary information for all labels in database.
+Label (or label prefix ending in a '-') from the database to display report
+for. Can also be the keyword 'all', which shows summary information for all
+labels in database.
 
 =item B<-dump>
 Shows the raw data for the requested label(s).
