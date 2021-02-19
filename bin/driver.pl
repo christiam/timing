@@ -227,6 +227,7 @@ sub collect_cpu_usage
             chomp;
             my @F = split;
             next unless (scalar(@F) > 8);
+            next unless ($F[7] =~ /\d+.\d+/);
             $retval = 100.0 - $F[7];
             last;
         }
