@@ -220,7 +220,7 @@ sub collect_mem_usage
 
 sub collect_cpu_usage
 {
-    open(my $top_output, '-|', 'top -n 1');
+    open(my $top_output, '-|', 'top -bn1');
     my $retval = INVALID_SYSINFO;
     while (<$top_output>) {
         if (/^%/) {
