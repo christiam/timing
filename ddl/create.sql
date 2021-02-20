@@ -58,7 +58,7 @@ SELECT
     mrss,
     arss,
     avg_mem_usage,
-    exit_status
+    exit_status,
     finished_at,
     HI.name as hostname,
     setup_exit_status,
