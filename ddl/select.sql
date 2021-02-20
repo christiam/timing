@@ -1,4 +1,5 @@
 PRAGMA foreign_keys = ON;
-SELECT * FROM runtime;
-SELECT * FROM system_info;
+SELECT * FROM host_info;
+SELECT * FROM runtime_view;
+SELECT * FROM system_info_view;
 -- SELECT * FROM export;
