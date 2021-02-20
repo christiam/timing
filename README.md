@@ -9,6 +9,9 @@ text file with 2 columns separated by a single `\t` character. It can be
 specified via the `CMDS_FILE` environment variable (default
 value=`etc/cmds.tab`). The first column in this file is a label to _uniquely_
 identify the command to run and the second is the actual command to run.
+If the token `{LABEL}` is found in the second column, it is replaced by the
+label along with the suffix corresponding to the number of the execution (if
+more than 1).
 
 The timing framework has 2 modes of operation: *consecutive tests* and *concurrent tests*.
 

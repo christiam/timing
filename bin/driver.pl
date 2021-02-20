@@ -121,23 +121,13 @@ sub main
         LOGDIE("Invalid input: tab separated label and command expected") if (@F != 2);
         my $label = $F[0];
         my $cmd2time = $F[1];
-    # HACK FOR SPARK AND OUTPUT IN HDFS
-    my $output;
-    if ($cmd2time =~ /spark-submit.*\.txt\s+(.*)\s+DUMMY_RID$/) {
-        $output = $1;
-    }
-    ###################################### 
         for (my $run_number = 0; $run_number < $num_repeats; $run_number++) {
             my ($setup_exit_code, $exit_code, $teardown_exit_code) = (0)x3;
             my $label4run = $label . "-" . ($run_number+1);
             $label4run = $label if ($num_repeats == 1);
-        # HACK FOR SPARK AND OUTPUT IN HDFS
-        if (defined $output and $num_repeats != 1) {
-            $cmd2time = $F[1];
-            my $output4run = $output . "-" . ($run_number+1);
-            $cmd2time =~ s/$output/$output4run/;
-        }
-        #####################################
+            if ($F[1] =~ /{LABEL}/) {
+                $cmd2time = $F[1] =~ s/{LABEL}/$label4run/r;
+            }
             if (exists $config{"$label.setup"}) {
                 try { run($config{"$label.setup"}); } 
                 catch { WARN("$label.setup command FAILED"); }
