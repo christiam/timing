@@ -9,12 +9,15 @@ use File::Temp;
 use Pod::Usage;
 use Try::Tiny;
 use Net::Domain;
+use Scalar::Util qw(looks_like_number);
 use DBI;
 use autodie;
 use Parallel::ForkManager;
 
-use constant SQL_RUNTIME => "INSERT INTO runtime(label,elapsed_time,user_time,system_time,pcpu,mrss,arss,avg_mem_usage,exit_status,hostname,setup_exit_status,teardown_exit_status) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)";
-use constant SQL_SYS_INFO => "INSERT INTO system_info(hostname, pmem_usage, pcpu_usage) VALUES(?,?,?)";
+use constant SQL_HOST_INFO => "INSERT INTO host_info(name,platform,num_cpus,cpu_speed,ram) VALUES(?,?,?,?,?)";
+use constant SQL_GET_HOST_ID => "SELECT rowid from host_info where name = ?";
+use constant SQL_RUNTIME => "INSERT INTO runtime(label,elapsed_time,user_time,system_time,pcpu,mrss,arss,avg_mem_usage,exit_status,host_id,setup_exit_status,teardown_exit_status) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)";
+use constant SQL_SYS_INFO => "INSERT INTO system_info(host_id, pmem_usage, pcpu_usage) VALUES(?,?,?)";
 use constant INVALID_SYSINFO => -1.0;
 
 my $dbname = "data/timings.db";
@@ -63,13 +66,23 @@ sub get_num_procs
     return $retval;
 }
 
+sub get_host_id
+{
+    my $dbh = shift;
+    my $hostname = shift;
+    my @result = @{ $dbh->selectall_arrayref(SQL_GET_HOST_ID, { Slice => {} }, ($hostname)) };
+    LOGDIE("Cannot get host_id for $hostname") unless (scalar(@result));
+    return $result[0];
+}
+
 sub main
 {
     $|++;
 
     my @commands = grep { !/^#|^$/ } read_file($cmds);
     my $num_parallel_jobs = scalar(@commands);
-    my $num_procs = &get_num_procs;
+    my $host_info = &get_host_info();
+    my $num_procs = $$host_info{NUM_CPUS};
     if ($num_parallel_jobs > $num_procs) {
         LOGDIE("The number of commands ($num_parallel_jobs) exceeds the number of available processors ($num_procs)");
     }
@@ -88,9 +101,12 @@ sub main
     $ENV{TIME} = "%e\t%U\t%S\t%P\t%M\t%t\t%K";
 
     my $dbh = connect_to_sqlite($dbname);
+    my $sth_hostinfo = $dbh->prepare(SQL_HOST_INFO);
+    &save2db($sth_hostinfo, $$host_info{NAME}, ($$host_info{PLATFORM}, $$host_info{NUM_CPUS}, $$host_info{CPU_SPEED}, $$host_info{RAM}));
+    my $host_id = &get_host_id($dbh, $$host_info{NAME});
+
     my $sth_runtime = $dbh->prepare(SQL_RUNTIME);
     my $sth_sysinfo = $dbh->prepare(SQL_SYS_INFO);
-    my $host = Net::Domain::hostfqdn();
     my %config;
     Config::Simple->import_from($cfg, \%config) if -f $cfg;
     DEBUG("Read config file $cfg") if -f $cfg;
@@ -106,7 +122,7 @@ sub main
             my $pcpu = &collect_cpu_usage();
             return if ($pmem == INVALID_SYSINFO or $pcpu == INVALID_SYSINFO);
             TRACE("system_info: mem: $pmem%, CPU=$pcpu%");
-            &save2db($sth_sysinfo, $host, ($pmem, $pcpu)) unless $dry_run;
+            &save2db($sth_sysinfo, $host_id, ($pmem, $pcpu)) unless $dry_run;
         }, $sampling_interval);
     }
 
@@ -178,7 +194,7 @@ sub main
                 finally { $teardown_exit_code = $IPC::System::Simple::EXITVAL; };
             }
             &configure_unsetting_environment(\%config, $label);
-            push @data, ($exit_code, $host, $setup_exit_code, $teardown_exit_code);
+            push @data, ($exit_code, $host_id, $setup_exit_code, $teardown_exit_code);
             &save2db($sth_runtime, $label4run, @data) unless $dry_run;
             if ($rm_core_files) {
                 no autodie; 
@@ -189,6 +205,53 @@ sub main
     }
     $pm->wait_all_children if defined $pm;
     $dbh->disconnect();
+}
+
+sub get_host_info
+{
+    my $retval = {};
+    my ($cpu_speed, $ram) = (2)x3;
+    &_get_hardware_info_linux(\$cpu_speed, \$ram);
+    $retval->{NAME} = Net::Domain::hostfqdn();
+    $retval->{PLATFORM} = 'x64-linux';
+    $retval->{NUM_CPUS} = &get_num_procs;
+    $retval->{CPU_SPEED} = $cpu_speed;
+    $retval->{RAM} = $ram;
+    return $retval;
+}
+
+sub _get_hardware_info_linux
+{
+    my $cpu_speed_ref = shift;
+    my $ram_ref = shift;
+
+    # Deduce cpu speed in GHz
+    my $cpu_speeds = 
+        `awk '/^model name/ {print \$NF}' /proc/cpuinfo | sort -u `;
+    my @num_lines = split(/\n/, $cpu_speeds);
+    if (scalar(@num_lines) == 1) {
+        chomp($cpu_speeds);
+        ($$cpu_speed_ref = $cpu_speeds) =~ s/GHz//;
+    } else {
+        # Shouldn't happen
+        print STDERR "More than one CPU speed among all CPUs: '$cpu_speeds'\n";
+    }
+
+    # Deduce RAM in Gigabytes
+    chomp(my $total_memory = `awk '/MemTotal/ {print \$2, \$3}' /proc/meminfo`);
+    my @mem_fields = split(/ /, $total_memory);
+    if (scalar(@mem_fields) == 2 and $mem_fields[1] =~ /kB/i) {
+        use integer;
+        $$ram_ref = $mem_fields[0] / 1000000;
+    }
+    unless (looks_like_number($$cpu_speed_ref)) {
+        WARN("CPU Speed doesn't look like a number '$$cpu_speed_ref'");
+        $$cpu_speed_ref = 0;
+    }
+    unless (looks_like_number($$ram_ref)) {
+        WARN("RAM doesn't look like a number '$$ram_ref'");
+        $$ram_ref = 0;
+    }
 }
 
 sub _configure_setting_environment
@@ -262,7 +325,8 @@ sub collect_cpu_usage
             chomp;
             my @F = split;
             next unless (scalar(@F) > 8);
-            next unless ($F[7] =~ /\d+.\d+/);
+            #next unless ($F[7] =~ /\d+.\d+/);
+            next unless (looks_like_number($F[7]));
             $retval = 100.0 - $F[7];
             last;
         }

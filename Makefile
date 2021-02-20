@@ -163,6 +163,7 @@ clean:
 .PHONY: distclean
 distclean: clean
 	make -C ${DATADIR} $@
+	${RM} *.ini *.tab
 
 BASEDIR=`basename ${PWD}`
 archive:

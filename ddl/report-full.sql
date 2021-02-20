@@ -12,12 +12,12 @@ SELECT label,
        teardown_exit_status 'teardown',
        finished_at,
        hostname
-FROM runtime
+FROM runtime_view
 ORDER BY label, finished_at desc;
 
 SELECT hostname,
        timestamp, 
        pmem_usage 'RAM usage %', 
        pcpu_usage 'CPU usage %'
-FROM system_info
+FROM system_info_view
 ORDER BY timestamp DESC;
