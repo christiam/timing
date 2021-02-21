@@ -29,7 +29,7 @@ my $dry_run = 0;
 my $verbose = 0;
 my $skip_failures = 0;
 my $rm_core_files = 0;
-my $sampling_interval = 1;
+my $sampling_freq = 1;  
 my $logfile = "";
 my $help_requested = 0;
 GetOptions("db=s"           => \$dbname,
@@ -40,6 +40,7 @@ GetOptions("db=s"           => \$dbname,
            "skip_failures"  => \$skip_failures,
            "rm_core_files"  => \$rm_core_files,
            "verbose|v+"     => \$verbose,
+           "sampling_freq=i"=> \$sampling_freq,
            "dry_run"        => \$dry_run,
            "logfile=s"      => \$logfile,
            "help|?"         => \$help_requested) || pod2usage(2);
@@ -126,7 +127,7 @@ sub main
             return if ($pmem == INVALID_SYSINFO or $pcpu == INVALID_SYSINFO);
             TRACE("system_info: mem: $pmem%, CPU=$pcpu%");
             &save2db($sth_sysinfo, $host_id, ($pmem, $pcpu)) unless $dry_run;
-        }, $sampling_interval);
+        }, $sampling_freq);
     }
 
     DATA_LOOP:
@@ -469,6 +470,10 @@ Ini-style configuration file (default: etc/timing.ini)
 =item B<-repeats>
 
 Number of times to run each command (default: 1)
+
+=item B<-sampling_freq>
+
+Sampling frequency in seconds for system metrics (default: 1)
 
 =item B<-parallel>
 
