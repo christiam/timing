@@ -118,7 +118,7 @@ sub main
             DEBUG("Child PID $pid ($ident) finished with exit code $exit_code");
         });
         $pm->run_on_wait( sub {
-            my $pmem = &collect_mem_usage();
+            my $pmem = &collect_used_shared_cached_mem_usage();
             my $pcpu = &collect_cpu_usage();
             return if ($pmem == INVALID_SYSINFO or $pcpu == INVALID_SYSINFO);
             TRACE("system_info: mem: $pmem%, CPU=$pcpu%");
@@ -296,8 +296,34 @@ sub configure_unsetting_environment
     _configure_setting_environment($config, $label, 'unset');
 }
 
+sub collect_used_shared_cached_mem_usage
+{
+    # This function is equivalent to
+    # free -b | awk 'BEGIN{t=u=s=c=0} /^Mem:/ { t=$2;u=$3;s=$5;c=$6; } END{print ((u+s+c)*100.)/(t*1.)}'
+    open(my $free_output, '-|', 'free -b');
+    my $total_memory = 0;
+    my $used_memory = 0;
+    my $shared_memory = 0;
+    my $cached_memory = 0;
+    while (<$free_output>) {
+        chomp;
+        if (/^Mem:\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)/) {
+            $total_memory = $1;
+            $used_memory = $2;
+            $shared_memory = $4;
+            $cached_memory = $5;
+        }
+    }
+    close($free_output);
+    my $retval = INVALID_SYSINFO;
+    $retval = (($used_memory+$cached_memory+$shared_memory)*100.)/($total_memory*1.) if ($total_memory > 0);
+    return $retval;
+}
+
 sub collect_mem_usage
 {
+    # This function is equivalent to
+    # vmstat -s | awk 'BEGIN{t=0;used=0} { if (/total memory/) {t=$1} ; if (/used memory/) {used=$1} } END{print (used*100.)/(t*1.)}'
     open(my $vmstat_output, '-|', 'vmstat -s');
     my $total_memory = 0;
     my $used_memory = 0;
