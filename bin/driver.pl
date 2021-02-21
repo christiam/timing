@@ -72,6 +72,7 @@ sub get_host_id
     my $hostname = shift;
     my @result = @{ $dbh->selectall_arrayref(SQL_GET_HOST_ID, { Slice => {} }, ($hostname)) };
     LOGDIE("Cannot get host_id for $hostname") unless (scalar(@result));
+    DEBUG("Got host id $result[0] for $hostname");
     return $result[0];
 }
 
