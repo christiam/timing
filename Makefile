@@ -31,17 +31,17 @@ GNUPLOT_CONF=etc/multi-series.gnuplot.conf
 
 .PHONY: all
 all: ${DBNAME}
-	bin/driver.pl -v -v -v -v -s -repeats $(NUM_REPEATS) -cmds ${CMDS_FILE}
-	#bin/driver.pl -v -v -v -v -s -repeats $(NUM_REPEATS) -rm_core_files
+	bin/driver.pl -v -v -v -v -skip_failures -repeats $(NUM_REPEATS) -cmds ${CMDS_FILE}
+	#bin/driver.pl -v -v -v -v -skip_failures -repeats $(NUM_REPEATS) -rm_core_files
 
 run_parallel: ${DBNAME}
-	bin/driver.pl -v -v -v -v -s -parallel -cmds ${CMDS_FILE}
+	bin/driver.pl -v -v -v -v -skip_failures -parallel -cmds ${CMDS_FILE}
 
 # target to run tests in EB-785, for didactical purposes
 eb785: ${DBNAME}
 	for n in 1 2 4 8 16 32; do \
 		make -C ${DATADIR} timings-$$n.db; \
-		bin/driver.pl -v -v -v -s -parallel -db ${DATADIR}/timings-$$n.db -cmds etc/cmds-$$n.tab; \
+		bin/driver.pl -v -v -v -skip_failures -parallel -db ${DATADIR}/timings-$$n.db -cmds etc/cmds-$$n.tab; \
 		bin/reports.pl -db ${DATADIR}/timings-$$n.db -label megablast-$$n ; \
 	done
 
@@ -97,7 +97,7 @@ ${TEST_CMD_FILE}:
 .PHONY: test_consecutive
 test_consecutive: ${TEST_CMD_FILE}
 	[ -f ${DATADIR}/testdb.db ] || make -C ${DATADIR} testdb.db
-	bin/driver.pl -v -v -v -v -v -s -repeats 3 -cmds ${TEST_CMD_FILE} -db ${DATADIR}/testdb.db
+	bin/driver.pl -v -v -v -v -v -skip_failures -repeats 3 -cmds ${TEST_CMD_FILE} -db ${DATADIR}/testdb.db
 	sqlite3 -header -column ${DATADIR}/testdb.db < ddl/select.sql
 	bin/reports.pl -label all -db ${DATADIR}/testdb.db
 	${RM} $< ${DATADIR}/testdb.db
@@ -110,7 +110,7 @@ ${TEST_CMD_FILE_PARALLEL}:
 .PHONY: test_parallel
 test_parallel: ${TEST_CMD_FILE_PARALLEL}
 	[ -f ${DATADIR}/testdb.db ] || make -C ${DATADIR} testdb.db
-	bin/driver.pl -v -v -v -v -v -s -parallel -cmds $< -db ${DATADIR}/testdb.db
+	bin/driver.pl -v -v -v -v -v -skip_failures -parallel -cmds $< -db ${DATADIR}/testdb.db
 	sqlite3 -header -column ${DATADIR}/testdb.db < ddl/select.sql
 	bin/reports.pl -label all -db ${DATADIR}/testdb.db
 	${RM} $< ${DATADIR}/testdb.db
@@ -125,7 +125,7 @@ ${TEST_CFG_FILE}:
 .PHONY: test_config
 test_config: ${TEST_CFG_FILE}
 	[ -f ${DATADIR}/testdb.db ] || make -C ${DATADIR} testdb.db
-	bin/driver.pl -v -v -v -v -v -s -repeats 2 -cmds ${TEST_CMD_FILE} -cfg $< -db ${DATADIR}/testdb.db
+	bin/driver.pl -v -v -v -v -v -skip_failures -repeats 2 -cmds ${TEST_CMD_FILE} -cfg $< -db ${DATADIR}/testdb.db
 	sqlite3 -header -column ${DATADIR}/testdb.db < ddl/select.sql
 	bin/reports.pl -label all -db ${DATADIR}/testdb.db
 	${RM} $< ${TEST_CMD_FILE}
