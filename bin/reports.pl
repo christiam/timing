@@ -16,10 +16,12 @@ my $dump = 0;
 my $dry_run = 0;
 my $verbose = 0;
 my $logfile = "";
+my $metric = 'elapsed_time';
 my $help_requested = 0;
 my ($omit_failures, $omit_setup_failures, $omit_teardown_failures) = (0)x3;
 GetOptions("db=s"                       => \$dbname,
            "label=s"                    => \@labels,
+           "metric=s"                   => \$metric,
            "dump"                       => \$dump,
            "omit_failures"              => \$omit_failures,
            "omit_setup_failures"        => \$omit_setup_failures,
@@ -48,11 +50,11 @@ sub main
         @labels = get_all_labels($dbh);
     }
     foreach (@labels) {
-        my $sql = "select elapsed_time from runtime where label like '$_-%'";
+        my $sql = "select $metric from runtime where label like '$_-%'";
         TRACE($sql);
         my @result = map { $_ = $_->[0] } @{ $dbh->selectall_arrayref($sql) };
         if (@result == 0) {
-            $sql = "select elapsed_time from runtime where label == '$_'";
+            $sql = "select $metric from runtime where label == '$_'";
             @result = map { $_ = $_->[0] } @{ $dbh->selectall_arrayref($sql) };
         }
         DEBUG(join(" ", $_, @result));
@@ -167,7 +169,7 @@ __END__
 
 =head1 NAME
 
-B<reports.pl> - Produce reports from timing database for elapsed_time and system information (if available)
+B<reports.pl> - Produce reports from timing database
 
 =head1 SYNOPSIS
 
@@ -182,6 +184,10 @@ reports.pl [options] -label <test-case> [-label <test-case> ... ]
 Label (or label prefix ending in a '-') from the database to display report
 for. Can also be the keyword 'all', which shows summary information for all
 labels in database.
+
+=item B<-metric>
+
+Metric from the runtime table to display (default: elapsed_time).
 
 =item B<-dump>
 Shows the raw data for the requested label(s).
