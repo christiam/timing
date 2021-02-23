@@ -32,6 +32,9 @@ my $rm_core_files = 0;
 my $sampling_freq = 1;  
 my $logfile = "";
 my $help_requested = 0;
+my $print_version = 0;
+require 'version.pl';
+our $VERSION;
 GetOptions("db=s"           => \$dbname,
            "cmds=s"         => \$cmds,
            "cfg=s"          => \$cfg,
@@ -40,10 +43,15 @@ GetOptions("db=s"           => \$dbname,
            "skip_failures"  => \$skip_failures,
            "rm_core_files"  => \$rm_core_files,
            "verbose|v+"     => \$verbose,
+           "version"        => \$print_version,
            "sampling_freq=i"=> \$sampling_freq,
            "dry_run"        => \$dry_run,
            "logfile=s"      => \$logfile,
            "help|?"         => \$help_requested) || pod2usage(2);
+if ($print_version) {
+    print "$VERSION\n";
+    exit(0);
+}
 pod2usage(-verbose=>2) if ($help_requested);
 pod2usage("Missing command file") unless (-s $cmds);
 pod2usage("Missing database") unless (-s $dbname);

@@ -81,6 +81,8 @@ reset:
 .PHONY: check_perl_syntax
 check_perl_syntax:
 	for f in bin/*.pl; do perl -c $$f ; done
+	bin/driver.pl --version
+	bin/reports.pl --version
 
 .PHONY: test_sql
 test_sql:
