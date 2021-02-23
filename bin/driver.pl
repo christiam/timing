@@ -32,6 +32,8 @@ my $rm_core_files = 0;
 my $sampling_freq = 1;  
 my $logfile = "";
 my $help_requested = 0;
+my $print_version = 0;
+do "version.pl";
 GetOptions("db=s"           => \$dbname,
            "cmds=s"         => \$cmds,
            "cfg=s"          => \$cfg,
@@ -40,6 +42,7 @@ GetOptions("db=s"           => \$dbname,
            "skip_failures"  => \$skip_failures,
            "rm_core_files"  => \$rm_core_files,
            "verbose|v+"     => \$verbose,
+           "version"        => \$print_version,
            "sampling_freq=i"=> \$sampling_freq,
            "dry_run"        => \$dry_run,
            "logfile=s"      => \$logfile,
@@ -50,6 +53,10 @@ pod2usage("Missing database") unless (-s $dbname);
 pod2usage("Invalid number of repeats") unless ($num_repeats > 0);
 $verbose = 5 if ($dry_run and $verbose == 0);
 $num_repeats = 1 if $parallel;
+if ($print_version) {
+    print "$VERSION\n";
+    exit(0);
+}
 
 try {
     init_logging($logfile, $verbose);
