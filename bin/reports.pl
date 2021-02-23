@@ -8,6 +8,7 @@ use Pod::Usage;
 use Try::Tiny;
 use DBI;
 use Statistics::Descriptive;
+use lib::abs;
 use autodie;
 
 my $dbname = "data/timings.db";
@@ -20,7 +21,8 @@ my $metric = 'elapsed_time';
 my $help_requested = 0;
 my $print_version = 0;
 my ($omit_failures, $omit_setup_failures, $omit_teardown_failures) = (0)x3;
-require 'version.pl';
+my $version_file = lib::abs::path('../version.pl');
+require $version_file;
 our $VERSION;
 GetOptions("db=s"                       => \$dbname,
            "label=s"                    => \@labels,

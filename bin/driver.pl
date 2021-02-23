@@ -12,6 +12,7 @@ use Net::Domain;
 use Scalar::Util qw(looks_like_number);
 use DBI;
 use autodie;
+use lib::abs;
 use Parallel::ForkManager;
 
 use constant SQL_HOST_INFO => "INSERT INTO host_info(name,platform,num_cpus,cpu_speed,ram) VALUES(?,?,?,?,?)";
@@ -33,7 +34,8 @@ my $sampling_freq = 1;
 my $logfile = "";
 my $help_requested = 0;
 my $print_version = 0;
-require 'version.pl';
+my $version_file = lib::abs::path('../version.pl');
+require $version_file;
 our $VERSION;
 GetOptions("db=s"           => \$dbname,
            "cmds=s"         => \$cmds,
