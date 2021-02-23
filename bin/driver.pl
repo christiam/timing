@@ -36,7 +36,7 @@ my $help_requested = 0;
 my $print_version = 0;
 my $version_file = lib::abs::path('../version.pl');
 require $version_file;
-our $VERSION;
+our ($VERSION, $DB_VERSION);
 GetOptions("db=s"           => \$dbname,
            "cmds=s"         => \$cmds,
            "cfg=s"          => \$cfg,
@@ -115,6 +115,7 @@ sub main
     $ENV{TIME} = "%e\t%U\t%S\t%P\t%M\t%t\t%K";
 
     my $dbh = connect_to_sqlite($dbname);
+    $dbh->do("PRAGMA user_version = $DB_VERSION;");
     my $sth_hostinfo = $dbh->prepare(SQL_HOST_INFO);
     &save2db($sth_hostinfo, $$host_info{NAME}, ($$host_info{PLATFORM}, $$host_info{NUM_CPUS}, $$host_info{CPU_SPEED}, $$host_info{RAM}));
     my $host_id = &get_host_id($dbh, $$host_info{NAME});
