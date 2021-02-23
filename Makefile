@@ -77,6 +77,7 @@ show: ${DBNAME}
 .PHONY: reset
 reset:
 	make -C ${DATADIR} clean
+	make -C ddl clean
 
 .PHONY: check_perl_syntax
 check_perl_syntax:
@@ -165,6 +166,7 @@ clean:
 .PHONY: distclean
 distclean: clean
 	make -C ${DATADIR} $@
+	make -C ddl $@
 	${RM} *.ini *.tab
 
 BASEDIR=`basename ${PWD}`

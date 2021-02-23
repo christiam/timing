@@ -8,6 +8,7 @@ all: ${DB}
 
 %.db:
 	sqlite3 $@ < ../ddl/create.sql
+	sqlite3 $@ "PRAGMA user_version=`awk '/DB_VERSION/ {print $$NF}' ../version.pl`"
 
 # Could also use -s "gb|accession" instead of -g below
 %.fsa:
