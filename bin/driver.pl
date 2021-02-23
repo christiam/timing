@@ -18,7 +18,7 @@ use Parallel::ForkManager;
 use constant SQL_HOST_INFO => "INSERT INTO host_info(name,platform,num_cpus,cpu_speed,ram) VALUES(?,?,?,?,?)";
 use constant SQL_GET_HOST_ID => "SELECT rowid from host_info where name = ?";
 use constant SQL_RUNTIME => "INSERT INTO runtime(label,elapsed_time,user_time,system_time,pcpu,mrss,arss,avg_mem_usage,exit_status,host_id,setup_exit_status,teardown_exit_status) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)";
-use constant SQL_SYS_INFO => "INSERT INTO system_info(host_id, pmem_usage, pcpu_usage) VALUES(?,?,?)";
+use constant SQL_SYS_INFO => "INSERT INTO system_info(host_id, used_memory, free_memory, shared_memory, cached_memory, available_memory, pmem_usage, pcpu_usage) VALUES(?,?,?,?,?,?,?,?)";
 use constant INVALID_SYSINFO => -1.0;
 
 my $dbname = "data/timings.db";
@@ -133,11 +133,13 @@ sub main
             DEBUG("Child PID $pid ($ident) finished with exit code $exit_code");
         });
         $pm->run_on_wait( sub {
-            my $pmem = &collect_used_shared_cached_mem_usage();
+            my $mem = &collect_mem_info();
             my $pcpu = &collect_cpu_usage();
-            return if ($pmem == INVALID_SYSINFO or $pcpu == INVALID_SYSINFO);
-            TRACE("system_info: mem: $pmem%, CPU=$pcpu%");
-            &save2db($sth_sysinfo, $host_id, ($pmem, $pcpu)) unless $dry_run;
+            return if ($$mem{PMEM_USED} == INVALID_SYSINFO or $pcpu == INVALID_SYSINFO);
+            TRACE("system_info: mem: $$mem{PMEM_USED}%, CPU=$pcpu%");
+            my @data = ($$mem{USED}, $$mem{FREE}, $$mem{SHARED},
+                $$mem{CACHED}, $$mem{AVAILABLE}, $$mem{PMEM_USED}, $pcpu);
+            &save2db($sth_sysinfo, $host_id, @data) unless $dry_run;
         }, $sampling_freq);
     }
 
@@ -252,13 +254,7 @@ sub _get_hardware_info_linux
         print STDERR "More than one CPU speed among all CPUs: '$cpu_speeds'\n";
     }
 
-    # Deduce RAM in Gigabytes
-    chomp(my $total_memory = `awk '/MemTotal/ {print \$2, \$3}' /proc/meminfo`);
-    my @mem_fields = split(/ /, $total_memory);
-    if (scalar(@mem_fields) == 2 and $mem_fields[1] =~ /kB/i) {
-        use integer;
-        $$ram_ref = $mem_fields[0] / 1000000;
-    }
+    chomp($$ram_ref = `awk '/MemTotal/ {print \$2}' /proc/meminfo`);
     unless (looks_like_number($$cpu_speed_ref)) {
         WARN("CPU Speed doesn't look like a number '$$cpu_speed_ref'");
         $$cpu_speed_ref = 0;
@@ -311,49 +307,40 @@ sub configure_unsetting_environment
     _configure_setting_environment($config, $label, 'unset');
 }
 
-sub collect_used_shared_cached_mem_usage
+sub collect_mem_info
 {
     # This function is equivalent to
     # free -b | awk 'BEGIN{t=u=s=c=0} /^Mem:/ { t=$2;u=$3;s=$5;c=$6; } END{print ((u+s+c)*100.)/(t*1.)}'
     open(my $free_output, '-|', 'free -b');
     my $total_memory = 0;
+    my $free_memory = 0;
     my $used_memory = 0;
     my $shared_memory = 0;
     my $cached_memory = 0;
+    my $available_memory = 0;
     while (<$free_output>) {
         chomp;
-        if (/^Mem:\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)/) {
+        if (/^Mem:\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)$/) {
+            # See https://www.linuxatemyram.com/
             $total_memory = $1;
             $used_memory = $2;
+            $free_memory = $3;
             $shared_memory = $4;
             $cached_memory = $5;
+            $available_memory = $6;
         }
     }
     close($free_output);
-    my $retval = INVALID_SYSINFO;
-    $retval = (($used_memory+$cached_memory+$shared_memory)*100.)/($total_memory*1.) if ($total_memory > 0);
-    return $retval;
-}
-
-sub collect_mem_usage
-{
-    # This function is equivalent to
-    # vmstat -s | awk 'BEGIN{t=0;used=0} { if (/total memory/) {t=$1} ; if (/used memory/) {used=$1} } END{print (used*100.)/(t*1.)}'
-    open(my $vmstat_output, '-|', 'vmstat -s');
-    my $total_memory = 0;
-    my $used_memory = 0;
-    while (<$vmstat_output>) {
-        chomp;
-        if (/(\d+) K total memory/) {
-            $total_memory = $1;
-        }
-        if (/(\d+) K used memory/) {
-            $used_memory = $1;
-        }
+    my $retval = {};
+    $$retval{PMEM_USED} = INVALID_SYSINFO;
+    if ($total_memory) {
+        $$retval{PMEM_USED} = 100 - (($available_memory*100.)/($total_memory*1.));
     }
-    close($vmstat_output);
-    my $retval = INVALID_SYSINFO;
-    $retval = ($used_memory*100.)/($total_memory*1.) if ($total_memory > 0);
+    $$retval{USED} = $used_memory;
+    $$retval{FREE} = $free_memory;
+    $$retval{SHARED} = $shared_memory;
+    $$retval{CACHED} = $cached_memory;
+    $$retval{AVAILABLE} = $available_memory;
     return $retval;
 }
 

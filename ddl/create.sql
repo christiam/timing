@@ -6,6 +6,7 @@ CREATE TABLE IF NOT EXISTS host_info (
     platform    VARCHAR(45) NOT NULL,
     num_cpus    INTEGER CHECK(num_cpus >= 0),
     cpu_speed   FLOAT CHECK(cpu_speed >= 0.0),
+    /* in Kb, from /proc/meminfo */
     ram         INTEGER CHECK(ram >= 0)
 );
 
@@ -36,6 +37,13 @@ END;
 CREATE TABLE IF NOT EXISTS system_info (
     host_id                         INTEGER NOT NULL,
     timestamp                       TEXT DEFAULT '',
+    /* memory stored in Kb */
+    used_memory                     INTEGER CHECK(used_memory > 0),
+    free_memory                     INTEGER CHECK(free_memory > 0),
+    shared_memory                   INTEGER CHECK(shared_memory > 0),
+    cached_memory                   INTEGER CHECK(cached_memory > 0),
+    available_memory                INTEGER CHECK(available_memory > 0),
+    /* pmem_usage computed as ((used+cached+shared)*100.)/(total_memory*1.) */
     pmem_usage                      FLOAT CHECK(pmem_usage > 0.0),
     pcpu_usage                      FLOAT CHECK(pcpu_usage > 0.0),
     PRIMARY KEY(timestamp, host_id),
@@ -66,5 +74,14 @@ SELECT
 FROM host_info HI join runtime R on HI.rowid = R.host_id;
 
 CREATE VIEW IF NOT EXISTS system_info_view AS
-SELECT HI.name as hostname, timestamp, pmem_usage, pcpu_usage
+SELECT
+    HI.name as hostname,
+    timestamp,
+    used_memory,
+    free_memory,
+    shared_memory,
+    cached_memory,
+    available_memory,
+    pmem_usage,
+    pcpu_usage
 FROM host_info HI join system_info SI on HI.rowid = SI.host_id;
