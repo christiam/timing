@@ -5,6 +5,7 @@ requires 'Log::Log4perl';
 requires 'Try::Tiny';
 requires 'Pod::Usage';
 requires 'Parallel::ForkManager';
+requires 'lib::abs';
 requires 'autodie';
 requires 'DBI';
 requires 'DBD::SQLite';
