@@ -33,7 +33,8 @@ my $sampling_freq = 1;
 my $logfile = "";
 my $help_requested = 0;
 my $print_version = 0;
-do "version.pl";
+require 'version.pl';
+our $VERSION;
 GetOptions("db=s"           => \$dbname,
            "cmds=s"         => \$cmds,
            "cfg=s"          => \$cfg,
@@ -47,16 +48,16 @@ GetOptions("db=s"           => \$dbname,
            "dry_run"        => \$dry_run,
            "logfile=s"      => \$logfile,
            "help|?"         => \$help_requested) || pod2usage(2);
+if ($print_version) {
+    print "$VERSION\n";
+    exit(0);
+}
 pod2usage(-verbose=>2) if ($help_requested);
 pod2usage("Missing command file") unless (-s $cmds);
 pod2usage("Missing database") unless (-s $dbname);
 pod2usage("Invalid number of repeats") unless ($num_repeats > 0);
 $verbose = 5 if ($dry_run and $verbose == 0);
 $num_repeats = 1 if $parallel;
-if ($print_version) {
-    print "$VERSION\n";
-    exit(0);
-}
 
 try {
     init_logging($logfile, $verbose);

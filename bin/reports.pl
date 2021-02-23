@@ -20,6 +20,8 @@ my $metric = 'elapsed_time';
 my $help_requested = 0;
 my $print_version = 0;
 my ($omit_failures, $omit_setup_failures, $omit_teardown_failures) = (0)x3;
+require 'version.pl';
+our $VERSION;
 GetOptions("db=s"                       => \$dbname,
            "label=s"                    => \@labels,
            "metric=s"                   => \$metric,
@@ -32,14 +34,14 @@ GetOptions("db=s"                       => \$dbname,
            "dry_run"                    => \$dry_run,
            "logfile=s"                  => \$logfile,
            "help|?"                     => \$help_requested) || pod2usage(2);
-pod2usage(-verbose=>2) if ($help_requested);
-pod2usage("Missing database") unless (-s $dbname);
-pod2usage("Missing labels") unless (@labels);
-$verbose = 5 if ($dry_run and $verbose == 0);
 if ($print_version) {
     print "$VERSION\n";
     exit(0);
 }
+pod2usage(-verbose=>2) if ($help_requested);
+pod2usage("Missing database") unless (-s $dbname);
+pod2usage("Missing labels") unless (@labels);
+$verbose = 5 if ($dry_run and $verbose == 0);
 
 try {
     init_logging($logfile, $verbose);
