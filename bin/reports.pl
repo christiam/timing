@@ -58,7 +58,7 @@ sub main
     my @db_version = $dbh->selectrow_array("PRAGMA user_version;");
     LOGDIE("Failed to get DB version, please upgrade to the latest version of timing framework.") unless (@db_version);
     INFO("$dbname uses DB version $db_version[0]");
-    LOGDIE("Database version mismatch: got $db_version[0], expected $DB_VERSION") unless ($DB_VERSION == $db_version[0]);
+    WARN("Database version mismatch: got $db_version[0], expected $DB_VERSION") unless ($DB_VERSION == $db_version[0]);
     my %data;
     if (@labels == 1 and $labels[0] eq 'all') {
         @labels = get_all_labels($dbh);
