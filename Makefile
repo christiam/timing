@@ -167,7 +167,7 @@ clean:
 distclean: clean
 	make -C ${DATADIR} $@
 	make -C ddl $@
-	${RM} *.ini *.tab
+	${RM} *.ini *.tab *.out
 
 BASEDIR=`basename ${PWD}`
 archive:
