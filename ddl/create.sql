@@ -20,6 +20,7 @@ CREATE TABLE IF NOT EXISTS runtime (
     arss                            INTEGER CHECK(arss >= 0),
     avg_mem_usage                   INTEGER CHECK(avg_mem_usage >= 0),
     exit_status                     INTEGER DEFAULT 0,
+    started_at                      TEXT DEFAULT '',
     finished_at                     TEXT DEFAULT '',
     host_id                         INTEGER NOT NULL,
     setup_exit_status               INTEGER DEFAULT 0,
@@ -27,11 +28,16 @@ CREATE TABLE IF NOT EXISTS runtime (
     PRIMARY KEY(label, host_id),
     FOREIGN KEY(host_id) REFERENCES host_info(rowid) ON DELETE CASCADE
 );
-CREATE TRIGGER IF NOT EXISTS finished_at_trigger AFTER INSERT ON runtime
+/* Update both the started_at and finished_at timestamps on the runtime table */
+CREATE TRIGGER IF NOT EXISTS start_finish_times_on_runtime_trigger AFTER INSERT ON runtime
 BEGIN
     UPDATE runtime
     SET finished_at = datetime('now', 'localtime')
     WHERE rowid = NEW.rowid and finished_at is '';
+
+    UPDATE runtime
+    SET started_at = datetime((strftime('%s', finished_at) - CAST(elapsed_time AS INT)), 'unixepoch')
+    WHERE rowid = NEW.rowid and started_at is '';
 END;
 
 CREATE TABLE IF NOT EXISTS system_info (
@@ -67,6 +73,7 @@ SELECT
     arss,
     avg_mem_usage,
     exit_status,
+    started_at,
     finished_at,
     HI.name as hostname,
     setup_exit_status,
