@@ -10,6 +10,7 @@ SELECT label,
        exit_status,
        setup_exit_status 'setup',
        teardown_exit_status 'teardown',
+       started_at,
        finished_at,
        hostname
 FROM runtime_view
