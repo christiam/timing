@@ -310,8 +310,8 @@ sub configure_unsetting_environment
 sub collect_mem_info
 {
     # The percentage memory computed in this function is equivalent to the command:
-    # free -b | awk 'BEGIN{t=a=0} /^Mem/ {t=$2;a=$7;} END{print (100-((a*100)/(t*1.)))}'
-    open(my $free_output, '-|', 'free -b');
+    # free -k | awk 'BEGIN{t=a=0} /^Mem/ {t=$2;a=$7;} END{print (100-((a*100)/(t*1.)))}'
+    open(my $free_output, '-|', 'free -k');
     my $total_memory = 0;
     my $free_memory = 0;
     my $used_memory = 0;
