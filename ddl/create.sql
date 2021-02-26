@@ -84,6 +84,7 @@ CREATE VIEW IF NOT EXISTS system_info_view AS
 SELECT
     HI.name as hostname,
     timestamp,
+    HI.ram as total_memory,
     used_memory,
     free_memory,
     shared_memory,
