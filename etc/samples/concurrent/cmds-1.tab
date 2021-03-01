@@ -1,0 +1,1 @@
+megablast-1-parts-p1	blastn -query /home/ec2-user/query.fna -db ref_viruses_rep_genomes -evalue 0.001 -num_alignments 1 -num_threads 32 -outfmt '6 qseqid qlen sacc staxid sscinames slen pident evalue bitscore length' -out megablast-1-parts-p1.out

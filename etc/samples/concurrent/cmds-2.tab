@@ -1,0 +1,2 @@
+megablast-2-parts-p1	blastn -query /home/ec2-user/queries-2-parts/query.part-1.fna -db ref_viruses_rep_genomes -evalue 0.001 -num_alignments 1 -num_threads 16 -outfmt '6 qseqid qlen sacc staxid sscinames slen pident evalue bitscore length' -out megablast-2-parts-p1.out
+megablast-2-parts-p2	blastn -query /home/ec2-user/queries-2-parts/query.part-2.fna -db ref_viruses_rep_genomes -evalue 0.001 -num_alignments 1 -num_threads 16 -outfmt '6 qseqid qlen sacc staxid sscinames slen pident evalue bitscore length' -out megablast-2-parts-p2.out

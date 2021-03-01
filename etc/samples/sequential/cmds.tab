@@ -1,0 +1,6 @@
+# Commands file for timing framework
+100k	blastx -query $Q -db $DB -out {LABEL}.out
+200k	blastx -query $Q -db $DB -out {LABEL}.out
+300k	blastx -query $Q -db $DB -out {LABEL}.out
+10k	blastx -query $Q -db $DB -out {LABEL}.out
+50k	blastx -query $Q -db $DB -out {LABEL}.out
