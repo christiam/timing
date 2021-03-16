@@ -43,13 +43,13 @@ END;
 CREATE TABLE IF NOT EXISTS system_info (
     host_id                         INTEGER NOT NULL,
     timestamp                       TEXT DEFAULT '',
-    /* memory stored in Kb */
+    /* memory stored in Kb, obtained via free -k */
     used_memory                     INTEGER CHECK(used_memory > 0),
     free_memory                     INTEGER CHECK(free_memory > 0),
     shared_memory                   INTEGER CHECK(shared_memory > 0),
     cached_memory                   INTEGER CHECK(cached_memory > 0),
     available_memory                INTEGER CHECK(available_memory > 0),
-    /* pmem_usage computed as ((used+cached+shared)*100.)/(total_memory*1.) */
+    /* pmem_usage computed in bin/driver.pl */
     pmem_usage                      FLOAT CHECK(pmem_usage > 0.0),
     pcpu_usage                      FLOAT CHECK(pcpu_usage > 0.0),
     PRIMARY KEY(timestamp, host_id),
