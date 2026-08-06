@@ -18,7 +18,7 @@ use Parallel::ForkManager;
 use constant SQL_HOST_INFO => "INSERT INTO host_info(name,platform,num_cpus,cpu_speed,ram) VALUES(?,?,?,?,?)";
 use constant SQL_GET_HOST_ID => "SELECT rowid from host_info where name = ?";
 use constant SQL_RUNTIME => "INSERT INTO runtime(label,elapsed_time,user_time,system_time,pcpu,mrss,arss,avg_mem_usage,exit_status,host_id,setup_exit_status,teardown_exit_status) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)";
-use constant SQL_SYS_INFO => "INSERT INTO system_info(host_id, used_memory, free_memory, shared_memory, cached_memory, available_memory, pmem_usage, pcpu_usage) VALUES(?,?,?,?,?,?,?,?)";
+use constant SQL_SYS_INFO => "INSERT INTO system_info(host_id, used_memory, free_memory, shared_memory, cached_memory, available_memory, pmem_usage, pcpu_usage, test_label) VALUES(?,?,?,?,?,?,?,?,?)";
 use constant INVALID_SYSINFO => -1.0;
 
 my $dbname = "data/timings.db";
@@ -138,7 +138,7 @@ sub main
             return if ($$mem{PMEM_USED} == INVALID_SYSINFO or $pcpu == INVALID_SYSINFO);
             TRACE("system_info: mem: $$mem{PMEM_USED}%, CPU=$pcpu%");
             my @data = ($$mem{USED}, $$mem{FREE}, $$mem{SHARED},
-                $$mem{CACHED}, $$mem{AVAILABLE}, $$mem{PMEM_USED}, $pcpu);
+                $$mem{CACHED}, $$mem{AVAILABLE}, $$mem{PMEM_USED}, $pcpu, '');
             &save2db($sth_sysinfo, $host_id, @data) unless $dry_run;
         }, $sampling_freq);
     }
@@ -173,6 +173,16 @@ sub main
             &configure_setting_environment(\%config, $label);
             my $tmp_fh = File::Temp->new();
             my $cmd = "/usr/bin/time -o $tmp_fh $cmd2time";
+            unless ($dry_run) {
+                my $mem = &collect_mem_info();
+                my $pcpu = &collect_cpu_usage();
+                if ($$mem{PMEM_USED} != INVALID_SYSINFO and $pcpu != INVALID_SYSINFO) {
+                    TRACE("system_info before $label4run: mem: $$mem{PMEM_USED}%, CPU=$pcpu%");
+                    my @sysdata = ($$mem{USED}, $$mem{FREE}, $$mem{SHARED},
+                        $$mem{CACHED}, $$mem{AVAILABLE}, $$mem{PMEM_USED}, $pcpu, $label4run);
+                    &save2db($sth_sysinfo, $host_id, @sysdata);
+                }
+            }
             if ($skip_failures) {
                 try { run($cmd); } catch { $run_number = $num_repeats; }
                 finally { $exit_code = $IPC::System::Simple::EXITVAL; };

@@ -52,6 +52,8 @@ CREATE TABLE IF NOT EXISTS system_info (
     /* pmem_usage computed in bin/driver.pl */
     pmem_usage                      FLOAT CHECK(pmem_usage > 0.0),
     pcpu_usage                      FLOAT CHECK(pcpu_usage > 0.0),
+    /* label of the test being run when this snapshot was taken */
+    test_label                      VARCHAR(255) DEFAULT '',
     PRIMARY KEY(timestamp, host_id),
     FOREIGN KEY(host_id) REFERENCES host_info(rowid) ON DELETE CASCADE
 );
@@ -91,5 +93,6 @@ SELECT
     cached_memory,
     available_memory,
     pmem_usage,
-    pcpu_usage
+    pcpu_usage,
+    test_label
 FROM host_info HI join system_info SI on HI.rowid = SI.host_id;
