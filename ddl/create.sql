@@ -36,7 +36,7 @@ BEGIN
     WHERE rowid = NEW.rowid and finished_at is '';
 
     UPDATE runtime
-    SET started_at = datetime((strftime('%s', finished_at) - CAST(elapsed_time AS INT)), 'unixepoch')
+    SET started_at = datetime(strftime('%s', finished_at, 'utc') - CAST(elapsed_time AS INT), 'unixepoch', 'localtime')
     WHERE rowid = NEW.rowid and started_at is '';
 END;
 
